@@ -1,0 +1,297 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TJS",
+  "patterns": [
+    {
+      "include": "#code"
+    }
+  ],
+  "repository": {
+    "code": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#preprocessor" },
+        { "include": "#definition" },
+        { "include": "#control" },
+        { "include": "#value" }
+      ]
+    },
+    "expression": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#preprocessor" },
+        { "include": "#value" }
+      ]
+    },
+    "preprocessed": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#preprocessor" }
+      ]
+    },
+    "comment": {
+      "patterns": [
+        {
+            "begin": "/\\*",
+            "end": "\\*/",
+            "name": "comment.block.tjs"
+        },
+        {
+            "begin": "//",
+            "end": "$\\n?",
+            "name": "comment.line.double-slash.tjs"
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns" : [
+        {
+            "match": "^[ \t]*@set",
+            "name": "invalid.deprecated.preprocessor.tjs"
+        },
+        {
+            "match": "^[ \t]*@if",
+            "name": "invalid.deprecated.preprocessor.tjs"
+        },
+        {
+            "match": "^[ \t]*@endif",
+            "name": "invalid.deprecated.preprocessor.tjs"
+        }
+      ]
+    },
+    "definition": {
+      "patterns" : [
+        {
+            "match": "\\b(class)\\s+(\\w+)(\\s+(extends)\\s(\\w+))?",
+            "captures": {
+                "1": { "name": "storage.type.class.tjs" },
+                "2": { "name": "entity.name.type.tjs" },
+                "4": { "name": "storage.type.class.tjs" },
+                "5": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "begin": "\\b(function)\\s+(\\w+)\\s*\\(",
+            "end": "\\)(\\s*:\\s*(\\w+))?",
+            "beginCaptures": {
+                "1": { "name": "storage.type.function.tjs" },
+                "2": { "name": "entity.name.function.tjs" }
+            },
+            "endCaptures": {
+                "2": { "name": "entity.name.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#parameter" }
+            ]
+        },
+        {
+            "match": "\\b(function)\\s+(\\w+)(\\s*:\\s*(\\w+))?",
+            "captures": {
+                "1": { "name": "storage.type.function.tjs" },
+                "2": { "name": "entity.name.function.tjs" },
+                "4": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "match": "\\b(property)\\s+(\\w+)",
+            "captures": {
+                "1": { "name": "storage.type.property.tjs" },
+                "2": { "name": "entity.name.function.property.tjs" }
+            }
+        },
+        {
+            "match": "\\b(getter)(\\s*:\\s*(\\w+))?\\b",
+            "captures": {
+                "1": { "name": "keyword.other.tjs" },
+                "3": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "match": "\\b(setter)\\s*\\(\\s*(\\w+)(\\s*:\\s*(\\w+))?",
+            "captures": {
+                "1": { "name": "keyword.other.tjs" },
+                "2": { "name": "variable.parameter.tjs" },
+                "4": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "begin": "\\b(var|const)\\b",
+            "end": ";",
+            "beginCaptures": {
+                "1": { "name": "storage.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#preprocessed" },
+                {
+                    "begin": "\\b(\\w+)(\\s*:\\s*(\\w+))?\\b",
+                    "end": ",|(?=;)",
+                    "beginCaptures": {
+                        "1": { "name": "variable.other.tjs" },
+                        "3": { "name": "entity.name.type.tjs" }
+                    },
+                    "patterns": [
+                        { "include": "#expression" }
+                    ]
+                }
+            ]
+        }
+      ]
+    },
+    "value": {
+      "patterns" : [
+        {
+            "match": "@\".*?\"",
+            "name": "string.quoted.other.literal.tjs"
+        },
+        {
+            "match": "@\".*?\"",
+            "name": "string.quoted.other.literal.tjs"
+        },
+        {
+            "match": "\".*?\"",
+            "name": "string.quoted.double.literal.tjs"
+        },
+        {
+            "match": "\".*?\"",
+            "name": "string.quoted.single.literal.tjs"
+        },
+        {
+            "begin": "<%",
+            "end": "%>",
+            "name": "constant.octet.literal.tjs"
+        },
+        {
+            "match": "\\b0[xX][0-9a-fA-F.]+(p[+-]?[0-9]*)?\\b",
+            "name": "constant.numeric.hexadecimal.literal.tjs"
+        },
+        {
+            "match": "\\b0[0-7][0-7.]*(p[+-]?[0-9]*)?\\b",
+            "name": "constant.numeric.octal.literal.tjs"
+        },
+        {
+            "match": "\\b0[bB][0-1.]+(p[+-]?[0-9]*)?\\b",
+            "name": "constant.numeric.binary.literal.tjs"
+        },
+        {
+            "match": "\\b([1-9.][0-9.]*|0\\.[0-9]*|0)([eE][+-]?[0-9]*)?\\b",
+            "name": "constant.numeric.decimal.literal.tjs"
+        },
+        {
+            "match": "\\b(true|false)\\b",
+            "name": "constant.language.boolean.tjs"
+        },
+        {
+            "match": "\\b(null|void|NaN|Infinity)\\b",
+            "name": "constant.language.$1.tjs"
+        },
+        {
+            "match": "\\b(this|super|global)\\b",
+            "name": "variable.language.tjs"
+        },
+        {
+            "match": "\\b(new|delete|typeof|int|real|string|incontextof|instanceof|invalidate|isvalid|if)\\b",
+            "name": "keyword.operator.tjs"
+        },
+        {
+            "match": "\\b(debugger|enum|export|import|in|octet|synchronized|public|protected|private|static)\\b",
+            "name": "keyword.other.unused.tjs"
+        },
+        {
+            "begin": "\\b(function)\\s*\\(",
+            "end": "\\)(\\s*:\\s*(\\w+))?",
+            "beginCaptures": {
+                "1": { "name": "storage.type.function.tjs" }
+            },
+            "endCaptures": {
+                "2": { "name": "entity.name.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#parameter" }
+            ]
+        },
+        {
+            "match": "\\b(function)(\\s*:\\s*(\\w+))?\\b",
+            "captures": {
+                "1": { "name": "storage.type.function.tjs" },
+                "3": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "begin": "%\\[",
+            "end": "\\]",
+            "name": "meta.dictionary.tjs",
+            "patterns": [
+                { "include": "#preprocessed" },
+                {
+                    "begin": "(\\w+)\\s*:",
+                    "end": ",|=>|(?=\\])",
+                    "beginCaptures": {
+                        "1": { "name": "entity.name.tag.dictionary.tjs" }
+                    },
+                    "patterns": [
+                        { "include": "#expression" }
+                    ]
+                },
+                {
+                    "begin": "([\"'].+?[\"'])\\s*(,|=>)",
+                    "end": ",|=>|(?=\\])",
+                    "beginCaptures": {
+                        "1": { "name": "entity.name.tag.dictionary.tjs" }
+                    },
+                    "patterns": [
+                        { "include": "#expression" }
+                    ]
+                }
+            ]
+        },
+        {
+            "begin": "\\[",
+            "end": "\\]",
+            "name": "meta.array.tjs",
+            "patterns": [
+                { "include": "#expression" }
+            ]
+        },
+        {
+            "begin": "\\(",
+            "end": "\\)",
+            "patterns": [
+                { "include": "#code" }
+            ]
+        },
+        {
+            "begin": "{",
+            "end": "}",
+            "patterns": [
+                { "include": "#code" }
+            ]
+        }
+      ]
+    },
+    "control": {
+      "patterns" : [
+        {
+            "match": "\\b(break|case|catch|continue|default|do|else|finally|for|goto|if|return|switch|throw|try|while|with)\\b",
+            "name": "keyword.control.tjs"
+        }
+      ]
+    },
+    "parameter": {
+      "patterns": [
+        { "include": "#preprocessed" },
+        {
+            "begin": "\\b(\\w+)(\\s*:\\s*(\\w+))?\\b",
+            "end": ",|(?=\\))",
+            "beginCaptures": {
+                "1": { "name": "variable.parameter.tjs" },
+                "3": { "name": "entity.name.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#expression" }
+            ]
+        }
+      ]
+    }
+  },
+  "scopeName": "source.tjs"
+}
