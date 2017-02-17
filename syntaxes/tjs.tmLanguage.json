@@ -152,7 +152,7 @@
             "name": "string.quoted.double.literal.tjs"
         },
         {
-            "match": "\".*?\"",
+            "match": "'.*?'",
             "name": "string.quoted.single.literal.tjs"
         },
         {
