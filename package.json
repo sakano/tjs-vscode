@@ -5,6 +5,7 @@
     "version": "0.0.2",
     "publisher": "Biscrat",
     "license": "MIT",
+    "icon": "images/tjsicon.png",
     "engines": {
         "vscode": "^1.5.0"
     },
