@@ -1,6 +1,6 @@
 {
-    "name": "tjs-vscode",
-    "displayName": "TJS",
+    "name": "itjs-vscode",
+    "displayName": "iTJS",
     "description": "Adding TJS language support for Visual Studio Code",
     "version": "0.1.0",
     "publisher": "Biscrat",
@@ -25,21 +25,25 @@
     ],
     "contributes": {
         "languages": [{
-            "id": "tjs",
-            "aliases": ["TJS", "tjs"],
-            "extensions": [".tjs"],
+            "id": "itjs",
+            "aliases": ["iTJS", "itjs"],
+            "extensions": [".tjs",".itjs",". otjs",".ptjs"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
-            "language": "tjs",
+            "language": "itjs",
             "scopeName": "source.tjs",
             "path": "./syntaxes/tjs.tmLanguage.json"
         }],
-        "snippets": [{
-            "language": "tjs",
-            "path": "./snippets/tjs.json"
-        }]
-
+        "snippets": [
+            {
+                "language": "itjs",
+                "path": "./snippets/tjs.json"
+            },{
+                "language": "itjs",
+                "path": "./snippets/itjs.json"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
@@ -56,6 +60,6 @@
     },
     "main": "./out/src/extension",
     "activationEvents": [
-        "onLanguage:tjs"
+        "onLanguage:itjs"
     ]
 }

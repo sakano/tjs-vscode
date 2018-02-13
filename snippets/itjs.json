@@ -1,0 +1,11 @@
+{
+  "case": {
+    "prefix":"case33",
+    "body":[
+      "case ${1:value}:",
+      "\t$0",
+      "\tbreak;"
+    ],
+    "description": "case"
+  }
+}

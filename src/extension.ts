@@ -117,11 +117,11 @@ class TJSHoverProvider implements HoverProvider {
             return null;
         }
 
-        return new Hover({ language: "tjs", value: def });
+        return new Hover({ language: "itjs", value: def });
     }
 }
 
 export function activate(ctx: ExtensionContext): void {
     ctx.subscriptions.push(
-        vscode.languages.registerHoverProvider("tjs", new TJSHoverProvider()));
+        vscode.languages.registerHoverProvider("itjs", new TJSHoverProvider()));
 }
