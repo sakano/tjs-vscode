@@ -1,4 +1,11 @@
 {
+  "abstract function": {
+    "prefix":"abstract",
+    "body":[
+      "AbstractFunc(${1:Name})($2)"
+    ],
+    "description": "Abstract function"
+  },
   "class": {
     "prefix":"classi",
     "body":[
@@ -47,5 +54,14 @@
       "}"
     ],
     "description": "Function"
+  },
+  "override function": {
+    "prefix":"override",
+    "body":[
+      "OverrideFunc(${1:Name})($2) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Override function"
   }
 }

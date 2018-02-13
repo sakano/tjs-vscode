@@ -100,8 +100,22 @@
             ]
         },
         {
-            "begin": "\\b(Func)\\((\\w+)\\)\\s*\\(",
+            "begin": "\\b((Override)?Func)\\((\\w+)\\)\\s*\\(",
             "end": "\\)(\\s*:\\s*(\\w+))?",
+            "beginCaptures": {
+                "1": { "name": "storage.type.function.tjs" },
+                "3": { "name": "entity.name.function.tjs" }
+            },
+            "endCaptures": {
+                "2": { "name": "entity.name.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#parameter" }
+            ]
+        },
+        {
+            "begin": "\\b(AbstractFunc)\\((\\w+)\\)\\s*\\(",
+            "end": "\\)",
             "beginCaptures": {
                 "1": { "name": "storage.type.function.tjs" },
                 "2": { "name": "entity.name.function.tjs" }
@@ -115,6 +129,16 @@
         },
         {
             "begin": "\\b(Constructor)\\(",
+            "end": "\\)",
+            "beginCaptures": {
+                "1": { "name": "storage.type.function.tjs" }
+            },
+            "patterns": [
+                { "include": "#parameter" }
+            ]
+        },
+        {
+            "begin": "\\b(AbstractConstructor)\\(",
             "end": "\\)",
             "beginCaptures": {
                 "1": { "name": "storage.type.function.tjs" }
@@ -142,11 +166,11 @@
             }
         },
         {
-            "match": "\\b(Func)\\((\\w+)\\)(\\s*:\\s*(\\w+))?",
+            "match": "\\b((Override)?Func)\\((\\w+)\\)(\\s*:\\s*(\\w+))?",
             "captures": {
                 "1": { "name": "storage.type.function.tjs" },
-                "2": { "name": "entity.name.function.tjs" },
-                "4": { "name": "entity.name.type.tjs" }
+                "3": { "name": "entity.name.function.tjs" },
+                "5": { "name": "entity.name.type.tjs" }
             }
         },
         {
