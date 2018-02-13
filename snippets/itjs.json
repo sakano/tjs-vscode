@@ -1,11 +1,51 @@
 {
-  "case": {
-    "prefix":"case33",
+  "class": {
+    "prefix":"classi",
     "body":[
-      "case ${1:value}:",
-      "\t$0",
-      "\tbreak;"
+      "Class(${1:Name})",
+      "{",
+      "\tConstructor($2) {",
+      "\t}",
+      "}"
     ],
-    "description": "case"
+    "description": "Class"
+  },
+  "classe": {
+    "prefix":"classei",
+    "body":[
+      "ClassExtends(${1:Name}, ${2:Parent})",
+      "{",
+      "\tConstructor($3) {",
+      "\t}",
+      "}"
+    ],
+    "description": "Child class"
+  },
+  "finalize": {
+    "prefix":"finalizei",
+    "body":[
+      "Finalize() {",
+        "\t$0",
+      "}"
+    ],
+    "description": "Finalize method"
+  },
+  "lambda": {
+    "prefix":"lmd",
+    "body":[
+      "LMD($1) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "lambda"
+  },
+  "function": {
+    "prefix":"funci",
+    "body":[
+      "Func(${1:Name})($2) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Function"
   }
 }
