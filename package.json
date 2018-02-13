@@ -16,7 +16,8 @@
         "url": "https://github.com/sakano/tjs-vscode/issues"
     },
     "categories": [
-        "Languages"
+        "Languages",
+        "Snippets"
     ],
     "keywords": [
         "kirikiri"
@@ -32,7 +33,12 @@
             "language": "tjs",
             "scopeName": "source.tjs",
             "path": "./syntaxes/tjs.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "tjs",
+            "path": "./snippets/tjs.json"
         }]
+
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",

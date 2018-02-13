@@ -1,0 +1,280 @@
+{
+  "case": {
+    "prefix":"case",
+    "body":[
+      "case ${1:value}:",
+      "\t$0",
+      "\tbreak;"
+    ],
+    "description": "case"
+  },
+  "catch statement": {
+    "prefix":"catch",
+    "body":[
+      "catch (${1:e}) {",
+      "\t$0",
+      "}"
+    ],
+    "description":"Catch statement"
+  },
+  "class": {
+    "prefix":"class",
+    "body":[
+      "class ${1:Name}",
+      "{",
+      "\tfunction ${1:Name}($2) {",
+      "\t}",
+      "}"
+    ],
+    "description": "Class"
+  },
+  "classe": {
+    "prefix":"classe",
+    "body":[
+      "class ${1:Name} extends ${2:Parent}",
+      "{",
+      "\tfunction ${1:Name}($3) {",
+      "\t}",
+      "}"
+    ],
+    "description": "Child class"
+  },
+  "Debug.message": {
+    "prefix":"dm",
+    "body":[
+      "Debug.message($0);"
+    ],
+    "description": "Debug.message"
+  },
+  "default": {
+    "prefix":"default",
+    "body":[
+      "default:",
+      "\t$0",
+      "\tbreak;"
+    ],
+    "description": "default"
+  },
+  "Dictionary method": {
+    "prefix":"Dictionary.",
+    "body":[
+      "(Dictionary.${1:assign} incontextof ${2:dic})($0);"
+    ],
+    "description": "Dictionary method"
+  },
+  "do...while loop": {
+    "prefix":"do",
+    "body":[
+      "do {",
+      "\t$0",
+      "} while (${1:true});"
+    ],
+    "description": "do...while loop"
+  },
+  "else statement": {
+    "prefix":"else",
+    "body":[
+      "else {",
+      "\t$0",
+      "}"
+    ],
+    "description":"else statement"
+  },
+  "finalize": {
+    "prefix":"finalize",
+    "body":[
+      "function finalize() {",
+        "\t$0",
+      "}"
+    ],
+    "description": "Finalize method"
+  },
+  "for loop": {
+    "prefix": "for",
+    "body": [
+      "for (var ${1:i} = 0; ${1:i} < ${2:length}; ++${1:i}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "for loop"
+  },
+  "for loop array": {
+    "prefix": "fora",
+    "body": [
+      "for (var ${1:i} = 0; ${1:i} < ${2:array}.length; ++${1:i}) {",
+      "\tvar ${3:element} = ${2:array}[${1:i}];",
+      "\t$0",
+      "}"
+    ],
+    "description": "Array for loop"
+  },
+  "for loop array reverse": {
+    "prefix": "forar",
+    "body": [
+      "for (var ${1:i} = ${2:array}.length - 1; ${1:i} >= 0; --${1:i}) {",
+      "\tvar ${3:element} = ${2:array}[${1:i}];",
+      "\t$0",
+      "}"
+    ],
+    "description": "Array reverse for loop"
+  },
+  "for loop dictionary": {
+    "prefix": "ford",
+    "body": [
+      "var ${1:keys} = Scripts.getObjectKeys(${2:dic});",
+      "for (var ${3:i} = 0; ${3:i} < ${1:keys}.length; ++${3:i}) {",
+      "\tvar ${4:key} = ${1:keys}[${3:i}];",
+      "\tvar ${5:value} = ${2:dic}[key];",
+      "\t$0",
+      "}"
+    ],
+    "description": "Dictionary for loop\n[ScriptsEx.dll required]"
+  },
+  "for loop reverse": {
+    "prefix": "forr",
+    "body": [
+      "for (var ${1:i} = ${2:length} - 1; ${1:i} >= 0; --${1:i}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Reverse for loop"
+  },
+  "function": {
+    "prefix":"func",
+    "body":[
+      "function ${1:Name}($2) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Function"
+  },
+  "function anonymous": {
+    "prefix":"funca",
+    "body":[
+      "function($1) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Anonymous function"
+  },
+  "if statement": {
+    "prefix":"if",
+    "body":[
+      "if (${1:true}) {",
+      "\t$0",
+      "}"
+    ],
+    "description":"if statement"
+  },
+  "missing method": {
+    "prefix":"missing",
+    "body":[
+      "function missing(get_or_set, name, value) {",
+      "\t$0",
+      "\treturn false;",
+      "}"
+    ],
+    "description":"missing method\nget_or_set is 0 when called to get value"
+  },
+  "property": {
+    "prefix":"prop",
+    "body":[
+      "property ${1:Name} {",
+        "\tget {",
+        "\t\t$2",
+        "\t}",
+        "\tset (value) {",
+        "\t\t$3",
+        "\t}",
+      "}"
+    ],
+    "description":"Property"
+  },
+  "property and backing field": {
+    "prefix":"propfull",
+    "body":[
+      "var _${1:Name} = ${2:void};",
+      "property ${1:Name} {",
+        "\tget { return _${1:Name}; }",
+        "\tset (value) { _${1:Name} = value; }" ,
+      "}"
+    ],
+    "description":"Property and backing filed"
+  },
+  "property get-only": {
+    "prefix":"propg",
+    "body":[
+      "property ${1:Name} {",
+        "\tget {",
+        "\t\t$0",
+        "\t}",
+      "}"
+    ],
+    "description":"Get-only property"
+  },
+  "property set-only": {
+    "prefix":"props",
+    "body":[
+      "property ${1:Name} {",
+        "\tset (value) {",
+        "\t\t$0",
+        "\t}",
+      "}"
+    ],
+    "description":"Set-only property"
+  },
+  "switch statement": {
+    "prefix":"switch",
+    "body":[
+      "switch (${1:value}) {",
+      "$0",
+      "}"
+    ],
+    "description":"Switch statement"
+  },
+  "System.inform": {
+    "prefix":"si",
+    "body":[
+      "System.inform($0);"
+    ],
+    "description":"System.inform"
+  },
+  "try catch": {
+    "prefix":"try",
+    "body":[
+      "try {",
+      "\t$3",
+      "} catch (${1:e}) {",
+      "\t$2",
+      "}"
+    ],
+    "description":"Try catch"
+  },
+  "while loop": {
+    "prefix":"while",
+    "body":[
+      "while (${1:true}) {",
+      "\t$0",
+      "}"
+    ],
+    "description":"while loop"
+  },
+  "with statement": {
+    "prefix":"with",
+    "body":[
+      "with (${1:object}) {",
+      "\t$0",
+      "}"
+    ],
+    "description":"with statement"
+  },
+  "@if($0)": {
+    "prefix":"@set",
+    "body":[
+      "@if(${1:true})",
+      "$0",
+      "@endif"
+    ],
+    "description":"@set"
+  }
+}
