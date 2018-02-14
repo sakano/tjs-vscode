@@ -24,22 +24,32 @@
         "kirikiri"
     ],
     "contributes": {
-        "languages": [{
-            "id": "tjs",
-            "aliases": ["TJS", "tjs"],
-            "extensions": [".tjs"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "tjs",
-            "scopeName": "source.tjs",
-            "path": "./syntaxes/tjs.tmLanguage.json"
-        }],
-        "snippets": [{
-            "language": "tjs",
-            "path": "./snippets/tjs.json"
-        }]
-
+        "languages": [
+            {
+                "id": "tjs",
+                "aliases": [
+                    "TJS",
+                    "tjs"
+                ],
+                "extensions": [
+                    ".tjs"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "tjs",
+                "scopeName": "source.tjs",
+                "path": "./syntaxes/tjs.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "tjs",
+                "path": "./snippets/tjs.json"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
