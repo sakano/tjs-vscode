@@ -1,14 +1,14 @@
 {
   "abstract function": {
-    "prefix":"abstract",
-    "body":[
+    "prefix": "abstract",
+    "body": [
       "AbstractFunc(${1:Name})($2)"
     ],
     "description": "Abstract function"
   },
   "class": {
-    "prefix":"classi",
-    "body":[
+    "prefix": "classi",
+    "body": [
       "Class(${1:Name})",
       "{",
       "\tConstructor($2) {",
@@ -18,8 +18,8 @@
     "description": "Class"
   },
   "classe": {
-    "prefix":"classei",
-    "body":[
+    "prefix": "classei",
+    "body": [
       "ClassExtends(${1:Name}, ${2:Parent})",
       "{",
       "\tConstructor($3) {",
@@ -29,17 +29,17 @@
     "description": "Child class"
   },
   "finalize": {
-    "prefix":"finalizei",
-    "body":[
+    "prefix": "finalizei",
+    "body": [
       "Finalize() {",
-        "\t$0",
+      "\t$0",
       "}"
     ],
     "description": "Finalize method"
   },
   "lambda": {
-    "prefix":"lmd",
-    "body":[
+    "prefix": "lmd",
+    "body": [
       "LMD($1) {",
       "\t$0",
       "}"
@@ -47,8 +47,8 @@
     "description": "lambda"
   },
   "function": {
-    "prefix":"funci",
-    "body":[
+    "prefix": "funci",
+    "body": [
       "Func(${1:Name})($2) {",
       "\t$0",
       "}"
@@ -56,8 +56,8 @@
     "description": "Function"
   },
   "override function": {
-    "prefix":"override",
-    "body":[
+    "prefix": "override",
+    "body": [
       "OverrideFunc(${1:Name})($2) {",
       "\t$0",
       "}"

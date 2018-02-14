@@ -24,22 +24,35 @@
         "kirikiri"
     ],
     "contributes": {
-        "languages": [{
-            "id": "itjs",
-            "aliases": ["iTJS", "itjs"],
-            "extensions": [".tjs",".itjs",". otjs",".ptjs"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "itjs",
-            "scopeName": "source.tjs",
-            "path": "./syntaxes/tjs.tmLanguage.json"
-        }],
+        "languages": [
+            {
+                "id": "itjs",
+                "aliases": [
+                    "iTJS",
+                    "itjs"
+                ],
+                "extensions": [
+                    ".tjs",
+                    ".itjs",
+                    ". otjs",
+                    ".ptjs"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "itjs",
+                "scopeName": "source.tjs",
+                "path": "./syntaxes/tjs.tmLanguage.json"
+            }
+        ],
         "snippets": [
             {
                 "language": "itjs",
                 "path": "./snippets/tjs.json"
-            },{
+            },
+            {
                 "language": "itjs",
                 "path": "./snippets/itjs.json"
             }
