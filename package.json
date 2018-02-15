@@ -32,10 +32,7 @@
                     "itjs"
                 ],
                 "extensions": [
-                    ".tjs",
-                    ".itjs",
-                    ". otjs",
-                    ".ptjs"
+                    ".itjs"
                 ],
                 "configuration": "./language-configuration.json"
             }
@@ -43,7 +40,7 @@
         "grammars": [
             {
                 "language": "itjs",
-                "scopeName": "source.tjs",
+                "scopeName": "source.itjs",
                 "path": "./syntaxes/tjs.tmLanguage.json"
             }
         ],
