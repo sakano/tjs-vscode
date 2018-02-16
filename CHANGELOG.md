@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [0.1.2]
+- Fix bugs of property snippets
+
 ## [0.1.1]
 - "//#region" and "//#endregion" can be used to specify folding section
 - The code between "<%" and "%>" will be automatically indented

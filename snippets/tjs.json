@@ -180,10 +180,10 @@
     "prefix": "prop",
     "body": [
       "property ${1:Name} {",
-      "\tget {",
+      "\tgetter {",
       "\t\t$2",
       "\t}",
-      "\tset (value) {",
+      "\tsetter (value) {",
       "\t\t$3",
       "\t}",
       "}"
@@ -195,8 +195,8 @@
     "body": [
       "var _${1:Name} = ${2:void};",
       "property ${1:Name} {",
-      "\tget { return _${1:Name}; }",
-      "\tset (value) { _${1:Name} = value; }",
+      "\tgetter { return _${1:Name}; }",
+      "\tsetter (value) { _${1:Name} = value; }",
       "}"
     ],
     "description": "Property and backing filed"
@@ -205,7 +205,7 @@
     "prefix": "propg",
     "body": [
       "property ${1:Name} {",
-      "\tget {",
+      "\tgetter {",
       "\t\t$0",
       "\t}",
       "}"
@@ -216,7 +216,7 @@
     "prefix": "props",
     "body": [
       "property ${1:Name} {",
-      "\tset (value) {",
+      "\tsetter (value) {",
       "\t\t$0",
       "\t}",
       "}"
