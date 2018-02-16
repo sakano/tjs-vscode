@@ -32,7 +32,8 @@
                     "itjs"
                 ],
                 "extensions": [
-                    ".itjs"
+                    ".itjs",
+                    ".oitjs"
                 ],
                 "configuration": "./language-configuration.json"
             }
