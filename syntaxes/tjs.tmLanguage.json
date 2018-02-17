@@ -156,6 +156,10 @@
             "name": "string.quoted.single.literal.tjs"
         },
         {
+            "match": "(?<=^|[=\\?\\:\\(\\[,}]|&&|\\|\\|)[ \\t]*(\\/.+?\\/[gi]{0,2})(?=[ \\t]*(?:[;\\r\\n\\?:\\)\\],.]|if\\b|&&|\\|\\|))",
+            "name": "string.regexp.literal.tjs"
+        },
+        {
             "begin": "<%",
             "end": "%>",
             "name": "constant.octet.literal.tjs"
