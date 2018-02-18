@@ -2,7 +2,7 @@
     "name": "tjs-vscode",
     "displayName": "TJS",
     "description": "Adding TJS language support for Visual Studio Code",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
