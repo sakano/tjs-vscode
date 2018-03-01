@@ -215,6 +215,30 @@
                     ]
                 }
             ]
+        },
+        {
+            "match": "\\b(BeginEnum)\\((\\w+)\\)",
+            "captures": {
+                "1": { "name": "storage.type.enum.tjs" },
+                "2": { "name": "entity.name.type.tjs" }
+            }
+        },
+        {
+            "begin": "\\b(____Enum)\\((\\w+),?",
+            "end": "\\)",
+            "beginCaptures": {
+                "1": { "name": "storage.type.enum.tjs" },
+                "2": { "name": "entity.name.type.tjs" }
+            },
+            "patterns": [
+                { "include": "#value" }
+            ]
+        },
+        {
+            "match": "\\b(EndEnum)\\(\\)",
+            "captures": {
+                "1": { "name": "storage.type.enum.tjs" }
+            }
         }
       ]
     },
