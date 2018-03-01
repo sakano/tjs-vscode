@@ -40,6 +40,11 @@
             "begin": "//",
             "end": "$\\n?",
             "name": "comment.line.double-slash.tjs"
+        },
+        {
+            "begin": "m4_dnl",
+            "end": "$\\n?",
+            "name": "comment.line.m4.tjs"
         }
       ]
     },
