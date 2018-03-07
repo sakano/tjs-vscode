@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [0.2.0]
+- Support creation of ctags index file
+
 ## [0.1.4]
 - Fix syntax highlighting of regular expression literals
 
