@@ -57,9 +57,9 @@
         ],
         "commands": [
             {
-                "command": "tjs.updateCtags",
+                "command": "itjs.updateCtags",
                 "title": "Update Ctags File",
-                "category": "TJS"
+                "category": "iTJS"
             }
         ],
         "configuration": {
@@ -83,7 +83,8 @@
                         "type": "string"
                     },
                     "default": [
-                        ".tjs"
+                        ".tjs",
+                        ".itjs"
                     ]
                 },
                 "tjs.ctagsExtraOption": {
