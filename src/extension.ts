@@ -1,6 +1,7 @@
 'use strict';
 import { HoverProvider, Hover, TextDocument, CancellationToken, Position, ExtensionContext } from 'vscode';
 import * as vscode from 'vscode';
+const exec = require('child_process').exec;
 
 class TJSHoverProvider implements HoverProvider {
 
@@ -121,7 +122,50 @@ class TJSHoverProvider implements HoverProvider {
     }
 }
 
+function updateCtags() {
+    const rootPath = vscode.workspace.rootPath;
+    if (rootPath === undefined) {
+        vscode.window.showErrorMessage("No project currently opened");
+        return;
+    }
+    const tjsConfig = vscode.workspace.getConfiguration("tjs");
+    const ctagsFilePath = tjsConfig.get<string>("ctagsFilePath");
+    const ctagsRootPath = tjsConfig.get<string>("ctagsRootPath");
+    const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions");
+    const ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption");
+    const langmap = ctagsFileExtensions.join("");
+
+    if (ctagsFilePath == "") {
+        vscode.window.showErrorMessage("tjs.ctagsFilePath is empty");
+        return;
+    }
+
+    if (langmap.length == 0) {
+        vscode.window.showErrorMessage("tjs.ctagsFileExtensions is empty");
+        return;
+    }
+
+    exec("ctags" +
+        " --langdef=tjs" +
+        ` --langmap=tjs:${langmap}` +
+        " --regex-tjs=\"/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+        " --regex-tjs=\"/^[ \\t]*function[ \\t]+([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+        " --regex-tjs=\"/^[ \\t]*property[ \\t]+([a-zA-Z0-9_]+)/\\1/p,property/\"" +
+        " --regex-tjs=\"/^[ \\t]*var[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+        " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+        " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
+        " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
+        ` ${ctagsExtraOption} -f \"${rootPath}\\${ctagsFilePath}\" -R \"${rootPath}\\${ctagsRootPath}*\"`,
+        (err, stdout, stderr) => {
+            if (err !== null) {
+                vscode.window.showErrorMessage("ctags:" + err);
+            }
+        });
+}
+
 export function activate(ctx: ExtensionContext): void {
     ctx.subscriptions.push(
         vscode.languages.registerHoverProvider("itjs", new TJSHoverProvider()));
+
+    ctx.subscriptions.push(vscode.commands.registerCommand("itjs.updateCtags", updateCtags));
 }

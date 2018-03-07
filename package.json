@@ -2,7 +2,7 @@
     "name": "itjs-vscode",
     "displayName": "iTJS",
     "description": "Adding TJS language support for Visual Studio Code",
-    "version": "0.1.4",
+    "version": "0.2.0",
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
@@ -54,7 +54,45 @@
                 "language": "itjs",
                 "path": "./snippets/itjs.json"
             }
-        ]
+        ],
+        "commands": [
+            {
+                "command": "tjs.updateCtags",
+                "title": "Update Ctags File",
+                "category": "TJS"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "TJS configuration",
+            "properties": {
+                "tjs.ctagsFilePath": {
+                    "title": "File name of the Ctags' index file",
+                    "type": "string",
+                    "default": ".tags"
+                },
+                "tjs.ctagsRootPath": {
+                    "title": "Root path to search tjs files",
+                    "type": "string",
+                    "default": ""
+                },
+                "tjs.ctagsFileExtensions": {
+                    "title": "File extesions to handle as tjs file",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        ".tjs"
+                    ]
+                },
+                "tjs.ctagsExtraOption": {
+                    "title": "Ctags option",
+                    "type": "string",
+                    "default": ""
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
@@ -71,6 +109,7 @@
     },
     "main": "./out/src/extension",
     "activationEvents": [
-        "onLanguage:itjs"
+        "onLanguage:itjs",
+        "onCommand:itjs.updateCtags"
     ]
 }
