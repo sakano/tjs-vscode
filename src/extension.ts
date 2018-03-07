@@ -155,6 +155,16 @@ function updateCtags() {
         " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
         " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
         " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
+        " --regex-tjs=\"/^[ \\t]*Class\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+        " --regex-tjs=\"/^[ \\t]*ClassExtends\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+        " --regex-tjs=\"/^[ \\t]*Func\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+        " --regex-tjs=\"/^[ \\t]*OverrideFunc\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+        " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*LMD/\\1/f,function/\"" +
+        " --regex-tjs=\"/^[ \\t]*setStaticMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
+        " --regex-tjs=\"/^[ \\t]*Scripts.propSet[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
+        " --regex-tjs=\"/^[ \\t]*setHiddenMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/h,hidden/\"" +
+        " --regex-tjs=\"/^[ \\t]*m4_define\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
+        " --regex-tjs=\"/^[ \\t]*m4_pushdef\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
         ` ${ctagsExtraOption} -f \"${rootPath}\\${ctagsFilePath}\" -R \"${rootPath}\\${ctagsRootPath}*\"`,
         (err, stdout, stderr) => {
             if (err !== null) {
