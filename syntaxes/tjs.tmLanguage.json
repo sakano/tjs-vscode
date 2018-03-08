@@ -62,7 +62,7 @@
     "definition": {
       "patterns" : [
         {
-            "match": "\\b(class)\\s+(\\w+)(\\s+(extends)\\s(\\w+))?",
+            "match": "\\b(class)\\s+(\\w+)(\\s+(extends)\\s*(\\w+))?",
             "captures": {
                 "1": { "name": "storage.type.class.tjs" },
                 "2": { "name": "entity.name.type.tjs" },
