@@ -24,6 +24,9 @@ You must install ctags to use code navigation features such as "Go to Definition
 Now ".tags" file is created in your directory and you can use [ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx) features.
 
 ## Settings
+### tjs.ctagsRunOnSave
+If it is true, ctags index file is automatically recreated when tjs file is saved. It is false by default.
+
 ### tjs.ctagsFilePath
 Ctags index file name. It is ".tags" by default.
 
