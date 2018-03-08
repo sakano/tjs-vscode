@@ -140,12 +140,38 @@
     "value": {
       "patterns" : [
         {
-            "match": "@\".*?\"",
-            "name": "string.quoted.other.literal.tjs"
+            "begin": "@\"",
+            "end": "\"",
+            "beginCaptures": {
+                "0": { "name": "string.quoted.double.literal.tjs" }
+            },
+            "endCaptures": {
+                "0": { "name": "string.quoted.double.literal.tjs" }
+            },
+            "patterns": [
+                { "include": "#interpolation-string" },
+                {
+                    "match": ".",
+                    "name": "string.quoted.double.literal.tjs"
+                }
+            ]
         },
         {
-            "match": "@\".*?\"",
-            "name": "string.quoted.other.literal.tjs"
+            "begin": "@'",
+            "end": "'",
+            "beginCaptures": {
+                "0": { "name": "string.quoted.single.literal.tjs" }
+            },
+            "endCaptures": {
+                "0": { "name": "string.quoted.single.literal.tjs" }
+            },
+            "patterns": [
+                { "include": "#interpolation-string" },
+                {
+                    "match": ".",
+                    "name": "string.quoted.single.literal.tjs"
+                }
+            ]
         },
         {
             "match": "\".*?\"",
@@ -293,6 +319,26 @@
             "patterns": [
                 { "include": "#expression" }
             ]
+        }
+      ]
+    },
+    "interpolation-string": {
+      "patterns" : [
+        {
+            "begin": "(?<!\\\\)\\${",
+            "end": "}",
+            "patterns": [
+                { "include": "#expression" }
+            ],
+            "name": "meta.embedded.line.tjs"
+        },
+        {
+            "begin": "(?<!\\\\)&",
+            "end": ";",
+            "patterns": [
+                { "include": "#expression" }
+            ],
+            "name": "meta.embedded.line.tjs"
         }
       ]
     }
