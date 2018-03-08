@@ -183,7 +183,7 @@
       "\tgetter {",
       "\t\t$2",
       "\t}",
-      "\tsetter (value) {",
+      "\tsetter(value) {",
       "\t\t$3",
       "\t}",
       "}"
@@ -196,7 +196,7 @@
       "var _${1:Name} = ${2:void};",
       "property ${1:Name} {",
       "\tgetter { return _${1:Name}; }",
-      "\tsetter (value) { _${1:Name} = value; }",
+      "\tsetter(value) { _${1:Name} = value; }",
       "}"
     ],
     "description": "Property and backing filed"
@@ -216,7 +216,7 @@
     "prefix": "props",
     "body": [
       "property ${1:Name} {",
-      "\tsetter (value) {",
+      "\tsetter(value) {",
       "\t\t$0",
       "\t}",
       "}"
