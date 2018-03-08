@@ -80,6 +80,13 @@
     ],
     "description": "else statement"
   },
+  "endregion": {
+    "prefix": "//#endregion",
+    "body": [
+      "//#endregion"
+    ],
+    "description": "#region"
+  },
   "finalize": {
     "prefix": "finalize",
     "body": [
@@ -222,6 +229,14 @@
       "}"
     ],
     "description": "Set-only property"
+  },
+  "region": {
+    "prefix": "//#region",
+    "body": [
+      "//#region$0",
+      "//#endregion"
+    ],
+    "description": "#region"
   },
   "switch statement": {
     "prefix": "switch",
