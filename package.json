@@ -85,6 +85,11 @@
                     "title": "Ctags option",
                     "type": "string",
                     "default": ""
+                },
+                "tjs.ctagsRunOnSave": {
+                    "title": "Recreate index file when tjs file is saved",
+                    "type": "boolean",
+                    "default": false
                 }
             }
         }
