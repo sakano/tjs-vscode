@@ -141,7 +141,7 @@
       "patterns" : [
         {
             "begin": "@\"",
-            "end": "\"",
+            "end": "(\"|$)",
             "beginCaptures": {
                 "0": { "name": "string.quoted.double.literal.tjs" }
             },
@@ -158,7 +158,7 @@
         },
         {
             "begin": "@'",
-            "end": "'",
+            "end": "('|$)",
             "beginCaptures": {
                 "0": { "name": "string.quoted.single.literal.tjs" }
             },
