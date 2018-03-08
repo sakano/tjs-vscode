@@ -188,6 +188,9 @@
         {
             "begin": "<%",
             "end": "%>",
+            "patterns": [
+                { "include": "#expression" }
+            ],
             "name": "constant.octet.literal.tjs"
         },
         {
