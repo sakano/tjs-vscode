@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [0.2.1]
+- Add new option to recreate ctags index file when tjs file is saved
+
 ## [0.2.0]
 - Support creation of ctags index file
 

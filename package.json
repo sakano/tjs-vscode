@@ -2,7 +2,7 @@
     "name": "itjs-vscode",
     "displayName": "iTJS",
     "description": "Adding TJS language support for Visual Studio Code",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
@@ -91,6 +91,11 @@
                     "title": "Ctags option",
                     "type": "string",
                     "default": ""
+                },
+                "tjs.ctagsRunOnSave": {
+                    "title": "Recreate index file when tjs file is saved",
+                    "type": "boolean",
+                    "default": false
                 }
             }
         }

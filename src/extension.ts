@@ -122,60 +122,98 @@ class TJSHoverProvider implements HoverProvider {
     }
 }
 
-function updateCtags() {
-    const rootPath = vscode.workspace.rootPath;
-    if (rootPath === undefined) {
-        vscode.window.showErrorMessage("No project currently opened");
-        return;
-    }
-    const tjsConfig = vscode.workspace.getConfiguration("tjs");
-    const ctagsFilePath = tjsConfig.get<string>("ctagsFilePath");
-    const ctagsRootPath = tjsConfig.get<string>("ctagsRootPath");
-    const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions");
-    const ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption");
-    const langmap = ctagsFileExtensions.join("");
+class CTagsSupportProvider {
+    private ctagsFilePath: string;
+    private ctagsRootPath: string;
+    private ctagsExtraOption: string;
+    private langmap: string;
+    private runOnSave: boolean;
 
-    if (ctagsFilePath == "") {
-        vscode.window.showErrorMessage("tjs.ctagsFilePath is empty");
-        return;
+    public constructor() {
+        this.loadConfiguration();
     }
 
-    if (langmap.length == 0) {
-        vscode.window.showErrorMessage("tjs.ctagsFileExtensions is empty");
-        return;
+    private loadConfiguration() {
+        const tjsConfig = vscode.workspace.getConfiguration("tjs");
+
+        this.ctagsFilePath = tjsConfig.get<string>("ctagsFilePath");
+        this.ctagsRootPath = tjsConfig.get<string>("ctagsRootPath");
+        this.ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption");
+
+        const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions");
+        this.langmap = ctagsFileExtensions.join("");
+
+        this.runOnSave = tjsConfig.get<boolean>("ctagsRunOnSave");
     }
 
-    exec("ctags" +
-        " --langdef=tjs" +
-        ` --langmap=tjs:${langmap}` +
-        " --regex-tjs=\"/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/\"" +
-        " --regex-tjs=\"/^[ \\t]*function[ \\t]+([a-zA-Z0-9_]+)/\\1/f,function/\"" +
-        " --regex-tjs=\"/^[ \\t]*property[ \\t]+([a-zA-Z0-9_]+)/\\1/p,property/\"" +
-        " --regex-tjs=\"/^[ \\t]*var[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
-        " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
-        " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
-        " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
-        " --regex-tjs=\"/^[ \\t]*Class\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
-        " --regex-tjs=\"/^[ \\t]*ClassExtends\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
-        " --regex-tjs=\"/^[ \\t]*Func\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
-        " --regex-tjs=\"/^[ \\t]*OverrideFunc\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
-        " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*LMD/\\1/f,function/\"" +
-        " --regex-tjs=\"/^[ \\t]*setStaticMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
-        " --regex-tjs=\"/^[ \\t]*Scripts.propSet[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
-        " --regex-tjs=\"/^[ \\t]*setHiddenMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/h,hidden/\"" +
-        " --regex-tjs=\"/^[ \\t]*m4_define\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
-        " --regex-tjs=\"/^[ \\t]*m4_pushdef\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
-        ` ${ctagsExtraOption} -f \"${rootPath}\\${ctagsFilePath}\" -R \"${rootPath}\\${ctagsRootPath}*\"`,
-        (err, stdout, stderr) => {
-            if (err !== null) {
-                vscode.window.showErrorMessage("ctags:" + err);
-            }
-        });
+    public updateCtags() {
+        const rootPath = vscode.workspace.rootPath;
+        if (rootPath === undefined) {
+            vscode.window.showErrorMessage("No project currently opened");
+            return;
+        }
+
+        if (this.ctagsFilePath == "") {
+            vscode.window.showErrorMessage("tjs.ctagsFilePath is empty");
+            return;
+        }
+
+        if (this.langmap.length == 0) {
+            vscode.window.showErrorMessage("tjs.ctagsFileExtensions is empty");
+            return;
+        }
+
+        exec("ctags" +
+            " --langdef=tjs" +
+            ` --langmap=tjs:${this.langmap}` +
+            " --regex-tjs=\"/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+            " --regex-tjs=\"/^[ \\t]*function[ \\t]+([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+            " --regex-tjs=\"/^[ \\t]*property[ \\t]+([a-zA-Z0-9_]+)/\\1/p,property/\"" +
+            " --regex-tjs=\"/^[ \\t]*var[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+            " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+            " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
+            " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
+            " --regex-tjs=\"/^[ \\t]*Class\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+            " --regex-tjs=\"/^[ \\t]*ClassExtends\\(([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+            " --regex-tjs=\"/^[ \\t]*Func\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+            " --regex-tjs=\"/^[ \\t]*OverrideFunc\\(([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+            " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*LMD/\\1/f,function/\"" +
+            " --regex-tjs=\"/^[ \\t]*setStaticMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
+            " --regex-tjs=\"/^[ \\t]*Scripts.propSet[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/s,static/\"" +
+            " --regex-tjs=\"/^[ \\t]*setHiddenMember[ \\t]*\\([^,]+,[ \\t]*\\\"([a-zA-Z0-9_]+)\\\"/\\1/h,hidden/\"" +
+            " --regex-tjs=\"/^[ \\t]*m4_define\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
+            " --regex-tjs=\"/^[ \\t]*m4_pushdef\\((&\\-\\-)?([a-zA-Z0-9_]+)/\\2/d,define/\"" +
+            ` ${this.ctagsExtraOption} -f \"${rootPath}\\${this.ctagsFilePath}\" -R \"${rootPath}\\${this.ctagsRootPath}*\"`,
+            (err, stdout, stderr) => {
+                if (err !== null) {
+                    vscode.window.showErrorMessage("ctags:" + err);
+                }
+            });
+    }
+
+    public onDidSaveTextDocument(document: vscode.TextDocument) {
+        if (!this.runOnSave) return;
+        if (document.languageId == "itjs") {
+            this.updateCtags();
+        }
+    }
+
+    public onDidChangeConfiguration() {
+        this.loadConfiguration();
+    }
 }
 
 export function activate(ctx: ExtensionContext): void {
-    ctx.subscriptions.push(
-        vscode.languages.registerHoverProvider("itjs", new TJSHoverProvider()));
+    ctx.subscriptions.push(vscode.languages.registerHoverProvider("itjs", new TJSHoverProvider()));
 
-    ctx.subscriptions.push(vscode.commands.registerCommand("itjs.updateCtags", updateCtags));
+    const ctagsSupportProvider = new CTagsSupportProvider();
+    ctx.subscriptions.push(vscode.commands.registerCommand("itjs.updateCtags", () => {
+        ctagsSupportProvider.updateCtags();
+    }));
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
+        ctagsSupportProvider.onDidSaveTextDocument(document);
+    }));
+    ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
+        ctagsSupportProvider.onDidChangeConfiguration();
+    }));
 }
