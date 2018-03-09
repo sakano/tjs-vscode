@@ -67,7 +67,7 @@
     "definition": {
       "patterns" : [
         {
-            "match": "\\b(class)\\s+(\\w+)(\\s+(extends)\\s(\\w+))?",
+            "match": "\\b(class)\\s+(\\w+)(\\s+(extends)\\s*(\\w+))?",
             "captures": {
                 "1": { "name": "storage.type.class.tjs" },
                 "2": { "name": "entity.name.type.tjs" },
@@ -186,7 +186,7 @@
             }
         },
         {
-            "match": "\\b(getter)(\\s*:\\s*(\\w+))?\\b",
+            "match": "\\b(getter)(?:\\s*\\(\\s*\\))?(\\s*:\\s*(\\w+))?\\b",
             "captures": {
                 "1": { "name": "keyword.other.tjs" },
                 "3": { "name": "entity.name.type.tjs" }
@@ -250,12 +250,38 @@
     "value": {
       "patterns" : [
         {
-            "match": "@\".*?\"",
-            "name": "string.quoted.other.literal.tjs"
+            "begin": "@\"",
+            "end": "(\"|$)",
+            "beginCaptures": {
+                "0": { "name": "string.quoted.double.literal.tjs" }
+            },
+            "endCaptures": {
+                "0": { "name": "string.quoted.double.literal.tjs" }
+            },
+            "patterns": [
+                { "include": "#interpolation-string" },
+                {
+                    "match": ".",
+                    "name": "string.quoted.double.literal.tjs"
+                }
+            ]
         },
         {
-            "match": "@\".*?\"",
-            "name": "string.quoted.other.literal.tjs"
+            "begin": "@'",
+            "end": "('|$)",
+            "beginCaptures": {
+                "0": { "name": "string.quoted.single.literal.tjs" }
+            },
+            "endCaptures": {
+                "0": { "name": "string.quoted.single.literal.tjs" }
+            },
+            "patterns": [
+                { "include": "#interpolation-string" },
+                {
+                    "match": ".",
+                    "name": "string.quoted.single.literal.tjs"
+                }
+            ]
         },
         {
             "match": "\".*?\"",
@@ -272,6 +298,9 @@
         {
             "begin": "<%",
             "end": "%>",
+            "patterns": [
+                { "include": "#expression" }
+            ],
             "name": "constant.octet.literal.tjs"
         },
         {
@@ -403,6 +432,26 @@
             "patterns": [
                 { "include": "#expression" }
             ]
+        }
+      ]
+    },
+    "interpolation-string": {
+      "patterns" : [
+        {
+            "begin": "(?<!\\\\)\\${",
+            "end": "}",
+            "patterns": [
+                { "include": "#expression" }
+            ],
+            "name": "meta.embedded.line.tjs"
+        },
+        {
+            "begin": "(?<!\\\\)&",
+            "end": ";",
+            "patterns": [
+                { "include": "#expression" }
+            ],
+            "name": "meta.embedded.line.tjs"
         }
       ]
     }

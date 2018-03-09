@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [0.2.2]
+- Support syntax highlight for interpolation string
+- Fix some syntax highlights and snippets
+
 ## [0.2.1]
 - Add new option to recreate ctags index file when tjs file is saved
 

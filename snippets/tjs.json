@@ -80,6 +80,13 @@
     ],
     "description": "else statement"
   },
+  "endregion": {
+    "prefix": "//#endregion",
+    "body": [
+      "//#endregion"
+    ],
+    "description": "#region"
+  },
   "finalize": {
     "prefix": "finalize",
     "body": [
@@ -183,7 +190,7 @@
       "\tgetter {",
       "\t\t$2",
       "\t}",
-      "\tsetter (value) {",
+      "\tsetter(value) {",
       "\t\t$3",
       "\t}",
       "}"
@@ -196,7 +203,7 @@
       "var _${1:Name} = ${2:void};",
       "property ${1:Name} {",
       "\tgetter { return _${1:Name}; }",
-      "\tsetter (value) { _${1:Name} = value; }",
+      "\tsetter(value) { _${1:Name} = value; }",
       "}"
     ],
     "description": "Property and backing filed"
@@ -216,12 +223,20 @@
     "prefix": "props",
     "body": [
       "property ${1:Name} {",
-      "\tsetter (value) {",
+      "\tsetter(value) {",
       "\t\t$0",
       "\t}",
       "}"
     ],
     "description": "Set-only property"
+  },
+  "region": {
+    "prefix": "//#region",
+    "body": [
+      "//#region$0",
+      "//#endregion"
+    ],
+    "description": "#region"
   },
   "switch statement": {
     "prefix": "switch",
