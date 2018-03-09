@@ -1,0 +1,10 @@
+{
+  "tjs.description":"Visual Studio CodeにTJSファイルの機能を追加します",
+  "tjs.updateCtags.title": "Ctagsのインデックスファイルを更新",
+  "configuration.title": "TJSの設定",
+  "tjs.ctagsFilePath.description": "Ctagsのインデックスファイルのファイル名",
+  "tjs.ctagsRootPath.description": "tjsファイルを検索する際のルートパス",
+  "tjs.ctagsFileExtensions.description": "tjsファイルとして扱うファイル拡張子",
+  "tjs.ctagsExtraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
+  "tjs.ctagsRunOnSave.description": "tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか"
+}

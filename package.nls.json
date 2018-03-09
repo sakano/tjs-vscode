@@ -1,0 +1,10 @@
+{
+  "tjs.description":"Adding TJS language support for Visual Studio Code",
+  "tjs.updateCtags.title": "Update Ctags Index File",
+  "configuration.title": "TJS Configuration",
+  "tjs.ctagsFilePath.description": "File name of the Ctags' index file",
+  "tjs.ctagsRootPath.description": "Root path to search tjs files",
+  "tjs.ctagsFileExtensions.description": "File extesions to handle as tjs file",
+  "tjs.ctagsExtraOption.description": "Command-line options which will be passed to ctags",
+  "tjs.ctagsRunOnSave.description": "Whether recreate index file automatically when tjs file is saved"
+}

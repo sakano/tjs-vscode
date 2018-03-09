@@ -1,7 +1,7 @@
 {
     "name": "tjs-vscode",
     "displayName": "TJS",
-    "description": "Adding TJS language support for Visual Studio Code",
+    "description": "%tjs.description%",
     "version": "0.2.2",
     "publisher": "Biscrat",
     "license": "MIT",
@@ -53,26 +53,26 @@
         "commands": [
             {
                 "command": "tjs.updateCtags",
-                "title": "Update Ctags File",
+                "title": "%tjs.updateCtags.title%",
                 "category": "TJS"
             }
         ],
         "configuration": {
             "type": "object",
-            "title": "TJS configuration",
+            "title": "%configuration.title%",
             "properties": {
                 "tjs.ctagsFilePath": {
-                    "title": "File name of the Ctags' index file",
+                    "description": "%tjs.ctagsFilePath.description%",
                     "type": "string",
                     "default": ".tags"
                 },
                 "tjs.ctagsRootPath": {
-                    "title": "Root path to search tjs files",
+                    "description": "%tjs.ctagsRootPath.description%",
                     "type": "string",
                     "default": ""
                 },
                 "tjs.ctagsFileExtensions": {
-                    "title": "File extesions to handle as tjs file",
+                    "description": "%tjs.ctagsFileExtensions.description%",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -82,12 +82,12 @@
                     ]
                 },
                 "tjs.ctagsExtraOption": {
-                    "title": "Ctags option",
+                    "description": "%tjs.ctagsExtraOption.description%",
                     "type": "string",
                     "default": ""
                 },
                 "tjs.ctagsRunOnSave": {
-                    "title": "Recreate index file when tjs file is saved",
+                    "description": "%tjs.ctagsRunOnSave.description%",
                     "type": "boolean",
                     "default": false
                 }
