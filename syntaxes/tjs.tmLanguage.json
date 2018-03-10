@@ -182,7 +182,7 @@
             "name": "string.quoted.single.literal.tjs"
         },
         {
-            "match": "(?<=^|[,;=\\?\\:\\(\\[{}<>+\\-%/\\\\*!~#$&]|&&|\\|\\||if|invalidate|isvalid|delete|typeof|instanceof|incontextof|int|real|string)[ \\t]*(\\/.+?\\/[gi]{0,2})(?=[ \\t]*(?:[,;=\\?:\\)<>\\].\\r\\n]|if|instanceof|incontextof|\\b|&&|\\|\\|))",
+            "match": "(?<=^|[,;=\\?\\:\\(\\[{}<>+\\-%/\\\\*!~#$&]|&&|\\|\\||if|invalidate|isvalid|delete|typeof|instanceof|incontextof|int|real|string)[ \\t]*((?<!\\/)\\/(?!\\/).+?\\/[gi]{0,2})(?=[ \\t]*(?:[,;=\\?:\\)<>\\].\\r\\n]|if|instanceof|incontextof|\\b|&&|\\|\\|))",
             "name": "string.regexp.literal.tjs"
         },
         {
