@@ -1,5 +1,7 @@
 # TJS for Visual Studio Code
 
+日本語版のREADMEは[こちら](https://github.com/sakano/tjs-vscode/blob/master/README-ja.md)にあります。
+
 Adds TJS language support for Visual Studio Code. If you needs KAG/KAGEX support, check [kagex-vscode](https://marketplace.visualstudio.com/items?itemName=Biscrat.kagex-vscode).
 
 
@@ -14,7 +16,7 @@ Adds TJS language support for Visual Studio Code. If you needs KAG/KAGEX support
 You must install ctags to use code navigation features such as "Go to Definition and "Peek definition".
 ## Installation
 1. Install ctags and put it in your system path. I recommend [Exuberant Ctags](http://ctags.sourceforge.net/).
-2. Install [ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx).
+2. Install [ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx) to Visual Studio Code.
 
 ## Update index file
 1. Open the directory which contains tjs files with Visual Studio Code.
@@ -38,7 +40,7 @@ For example, if it is "src\\", only files in src directory are searched.
 File extensions which are searched as tjs file. By default, only ".tjs" file is handled as tjs file.
 
 ### tjs.ctagsExtraOption
-Extra options which are passed when ctags executed.
+Extra command-line options which are passed when ctags executed.
 
 
 # Issues

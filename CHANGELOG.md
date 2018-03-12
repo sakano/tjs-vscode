@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [1.0.1]
+- Fix regex literal's syntax highlight
+
+## [1.0.0]
+- Add Japanese translation
+
 ## [0.2.2]
 - Support syntax highlight for interpolation string
 - Fix some syntax highlights and snippets
