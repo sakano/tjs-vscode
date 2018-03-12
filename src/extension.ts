@@ -93,12 +93,11 @@ class TJSHoverProvider implements HoverProvider {
         "Math.sqrt": "(function) Math.sqrt(x) : real"
     };
 
-    public provideHover(document: TextDocument, position: Position, token: CancellationToken): Hover {
+    public provideHover(document: TextDocument, position: Position, token: CancellationToken): Hover | undefined {
         const wordRange = document.getWordRangeAtPosition(position);
-        if (!wordRange) return;
+        if (!wordRange) { return undefined; }
 
         const lineText = document.lineAt(position.line).text;
-        const word = document.getText(wordRange);
         let startPos = wordRange.start.character;
         let endPos = wordRange.end.character - 1;
 
@@ -115,7 +114,7 @@ class TJSHoverProvider implements HoverProvider {
         const id = lineText.substr(startPos, endPos - startPos + 1);
         const def = this._definitions[id];
         if (!def) {
-            return null;
+            return undefined;
         }
 
         return new Hover({ language: "tjs", value: def });
@@ -123,11 +122,11 @@ class TJSHoverProvider implements HoverProvider {
 }
 
 class CTagsSupportProvider {
-    private ctagsFilePath: string;
-    private ctagsRootPath: string;
-    private ctagsExtraOption: string;
-    private langmap: string;
-    private runOnSave: boolean;
+    private ctagsFilePath: string = ".tags";
+    private ctagsRootPath: string = "";
+    private ctagsExtraOption: string = "";
+    private langmap: string = "";
+    private runOnSave: boolean = false;
 
     public constructor() {
         this.loadConfiguration();
@@ -136,14 +135,14 @@ class CTagsSupportProvider {
     private loadConfiguration() {
         const tjsConfig = vscode.workspace.getConfiguration("tjs");
 
-        this.ctagsFilePath = tjsConfig.get<string>("ctagsFilePath");
-        this.ctagsRootPath = tjsConfig.get<string>("ctagsRootPath");
-        this.ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption");
+        this.ctagsFilePath = tjsConfig.get<string>("ctagsFilePath", ".tags");
+        this.ctagsRootPath = tjsConfig.get<string>("ctagsRootPath", "");
+        this.ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption", "");
 
-        const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions");
+        const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions", [".tjs"]);
         this.langmap = ctagsFileExtensions.join("");
 
-        this.runOnSave = tjsConfig.get<boolean>("ctagsRunOnSave");
+        this.runOnSave = tjsConfig.get<boolean>("ctagsRunOnSave", false);
     }
 
     public updateCtags() {
@@ -153,12 +152,12 @@ class CTagsSupportProvider {
             return;
         }
 
-        if (this.ctagsFilePath == "") {
+        if (this.ctagsFilePath === "") {
             vscode.window.showErrorMessage("tjs.ctagsFilePath is empty");
             return;
         }
 
-        if (this.langmap.length == 0) {
+        if (this.langmap.length === 0) {
             vscode.window.showErrorMessage("tjs.ctagsFileExtensions is empty");
             return;
         }
@@ -174,7 +173,7 @@ class CTagsSupportProvider {
             " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
             " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
             ` ${this.ctagsExtraOption} -f \"${rootPath}\\${this.ctagsFilePath}\" -R \"${rootPath}\\${this.ctagsRootPath}*\"`,
-            (err, stdout, stderr) => {
+            (err: any, stdout: any, stderr: any) => {
                 if (err !== null) {
                     vscode.window.showErrorMessage("ctags:" + err);
                 }
@@ -182,8 +181,7 @@ class CTagsSupportProvider {
     }
 
     public onDidSaveTextDocument(document: vscode.TextDocument) {
-        if (!this.runOnSave) return;
-        if (document.languageId == "tjs") {
+        if (this.runOnSave && document.languageId === "tjs") {
             this.updateCtags();
         }
     }
