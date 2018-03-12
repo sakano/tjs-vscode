@@ -85,7 +85,7 @@
     "body": [
       "//#endregion"
     ],
-    "description": "#region"
+    "description": "#endregion"
   },
   "finalize": {
     "prefix": "finalize",
