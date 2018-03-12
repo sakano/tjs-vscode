@@ -1,7 +1,7 @@
 {
   "tjs.description":"Adding TJS language support for Visual Studio Code",
   "tjs.updateCtags.title": "Update Ctags Index File",
-  "configuration.title": "TJS Configuration",
+  "tjs.configuration.title": "TJS Configuration",
   "tjs.ctagsFilePath.description": "File name of the Ctags' index file",
   "tjs.ctagsRootPath.description": "Root path to search tjs files",
   "tjs.ctagsFileExtensions.description": "File extesions to handle as tjs file",

@@ -59,7 +59,7 @@
         ],
         "configuration": {
             "type": "object",
-            "title": "%configuration.title%",
+            "title": "%tjs.configuration.title%",
             "properties": {
                 "tjs.ctagsFilePath": {
                     "description": "%tjs.ctagsFilePath.description%",
