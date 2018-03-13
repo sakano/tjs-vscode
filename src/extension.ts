@@ -121,68 +121,100 @@ class TJSHoverProvider implements HoverProvider {
     }
 }
 
+type CtagsProcess = {
+    tagFilePath: string;
+    searchPath: string;
+    searchRecursive: boolean;
+    runOnSave: boolean;
+    fileExtensions: string[];
+    extraOption: string;
+    [index: string]: string | boolean | string[];
+};
+
 class CTagsSupportProvider {
-    private ctagsFilePath: string = ".tags";
-    private ctagsRootPath: string = "";
-    private ctagsExtraOption: string = "";
-    private langmap: string = "";
-    private runOnSave: boolean = false;
+    private process: CtagsProcess[] = [];
+    private readonly defaultProcess: CtagsProcess = {
+        "tagFilePath": ".tags",
+        "searchPath": "",
+        "searchRecursive": true,
+        "runOnSave": false,
+        "fileExtensions": [
+            ".tjs"
+        ],
+        "extraOption": ""
+    };
+    private readonly processKeys: string[] = [];
 
     public constructor() {
+        for (const key in this.defaultProcess) {
+            if (this.defaultProcess.hasOwnProperty(key)) {
+                this.processKeys.push(key);
+            }
+        }
         this.loadConfiguration();
     }
 
     private loadConfiguration() {
-        const tjsConfig = vscode.workspace.getConfiguration("tjs");
-
-        this.ctagsFilePath = tjsConfig.get<string>("ctagsFilePath", ".tags");
-        this.ctagsRootPath = tjsConfig.get<string>("ctagsRootPath", "");
-        this.ctagsExtraOption = tjsConfig.get<string>("ctagsExtraOption", "");
-
-        const ctagsFileExtensions = tjsConfig.get<string[]>("ctagsFileExtensions", [".tjs"]);
-        this.langmap = ctagsFileExtensions.join("");
-
-        this.runOnSave = tjsConfig.get<boolean>("ctagsRunOnSave", false);
+        this.process = vscode.workspace.getConfiguration("tjs").ctagsProcess;
+        if (this.process === undefined) {
+            this.process = [this.defaultProcess];
+        } else {
+            const toString = Object.prototype.toString;
+            this.process.forEach((p, index) => {
+                this.processKeys.forEach(key => {
+                    if (p[key] === undefined) {
+                        p[key] = this.defaultProcess[key];
+                    } else if (toString.call(p[key]) !== toString.call(this.defaultProcess[key])) {
+                        vscode.window.showErrorMessage(`tjs.ctagsProcess[${index}].${key} has wrong value.`);
+                        p[key] = this.defaultProcess[key];
+                    }
+                });
+            });
+        }
     }
 
-    public updateCtags() {
+    public updateCtags(save: boolean = false) {
         const rootPath = vscode.workspace.rootPath;
         if (rootPath === undefined) {
             vscode.window.showErrorMessage("No project currently opened");
             return;
         }
 
-        if (this.ctagsFilePath === "") {
-            vscode.window.showErrorMessage("tjs.ctagsFilePath is empty");
-            return;
+        for (let index = 0; index < this.process.length; index++) {
+            const p = this.process[index];
+            if (save && !p.runOnSave) { continue; }
+            if (p.tagFilePath === "") {
+                vscode.window.showErrorMessage(`tjs.ctagsProcess[${index}].tagFilePath is empty.`);
+                continue;
+            }
+            if (p.fileExtensions.length === 0) {
+                vscode.window.showErrorMessage(`tjs.ctagsProcess[${index}].fileExtensions is empty.`);
+                continue;
+            }
+            let langmap: string = p.fileExtensions.join(",");
+            let cmd: string = "ctags" +
+                " --langdef=tjs" +
+                ` --langmap=tjs:${langmap}` +
+                " --regex-tjs=\"/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/\"" +
+                " --regex-tjs=\"/^[ \\t]*function[ \\t]+([a-zA-Z0-9_]+)/\\1/f,function/\"" +
+                " --regex-tjs=\"/^[ \\t]*property[ \\t]+([a-zA-Z0-9_]+)/\\1/p,property/\"" +
+                " --regex-tjs=\"/^[ \\t]*var[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+                " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
+                " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
+                " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
+                ` ${p.extraOption} -f \"${rootPath}\\${p.tagFilePath}\" ${p.searchRecursive ? "-R" : ""} \"${rootPath}\\${p.searchPath}*\"`;
+            exec(cmd,
+                (err: any, stdout: any, stderr: any) => {
+                    if (err !== null) {
+                        vscode.window.showErrorMessage("ctags:" + err);
+                    }
+                });
         }
-
-        if (this.langmap.length === 0) {
-            vscode.window.showErrorMessage("tjs.ctagsFileExtensions is empty");
-            return;
-        }
-
-        exec("ctags" +
-            " --langdef=tjs" +
-            ` --langmap=tjs:${this.langmap}` +
-            " --regex-tjs=\"/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/\"" +
-            " --regex-tjs=\"/^[ \\t]*function[ \\t]+([a-zA-Z0-9_]+)/\\1/f,function/\"" +
-            " --regex-tjs=\"/^[ \\t]*property[ \\t]+([a-zA-Z0-9_]+)/\\1/p,property/\"" +
-            " --regex-tjs=\"/^[ \\t]*var[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
-            " --regex-tjs=\"/^[ \\t]*const[ \\t]+([a-zA-Z0-9_]+)/\\1/v,value/\"" +
-            " --regex-tjs=\"/^[ \\t]*([a-zA-Z0-9_]+)[ \\t]*:[ \\t]*function/\\1/f,function/\"" +
-            " --regex-tjs=\"/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/\"" +
-            ` ${this.ctagsExtraOption} -f \"${rootPath}\\${this.ctagsFilePath}\" -R \"${rootPath}\\${this.ctagsRootPath}*\"`,
-            (err: any, stdout: any, stderr: any) => {
-                if (err !== null) {
-                    vscode.window.showErrorMessage("ctags:" + err);
-                }
-            });
     }
 
     public onDidSaveTextDocument(document: vscode.TextDocument) {
-        if (this.runOnSave && document.languageId === "tjs") {
-            this.updateCtags();
+        if (document.languageId === "tjs") {
+            this.updateCtags(true);
         }
     }
 

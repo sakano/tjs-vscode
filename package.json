@@ -61,35 +61,71 @@
             "type": "object",
             "title": "%tjs.configuration.title%",
             "properties": {
-                "tjs.ctagsFilePath": {
-                    "description": "%tjs.ctagsFilePath.description%",
-                    "type": "string",
-                    "default": ".tags"
-                },
-                "tjs.ctagsRootPath": {
-                    "description": "%tjs.ctagsRootPath.description%",
-                    "type": "string",
-                    "default": ""
-                },
-                "tjs.ctagsFileExtensions": {
-                    "description": "%tjs.ctagsFileExtensions.description%",
+                "tjs.ctagsProcess": {
+                    "description": "%tjs.ctagsProcess.description%",
                     "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
                     "default": [
-                        ".tjs"
-                    ]
+                        {
+                            "tagFilePath": ".tags",
+                            "searchPath": "",
+                            "searchRecursive": true,
+                            "runOnSave": false,
+                            "fileExtensions": [
+                                ".tjs"
+                            ],
+                            "extraOption": ""
+                        }
+                    ],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tagFilePath": {
+                                "description": "%tjs.items.tagFilePath.description%",
+                                "type": "string",
+                                "default": ".tags"
+                            },
+                            "searchPath": {
+                                "description": "%tjs.items.searchPath.description%",
+                                "type": "string",
+                                "default": ""
+                            },
+                            "searchRecursive": {
+                                "description": "%tjs.items.searchRecursive.description%",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "runOnSave": {
+                                "description": "%tjs.items.runOnSave.description%",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fileExtensions": {
+                                "description": "%tjs.items.fileExtensions.description%",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": [
+                                    ".tjs"
+                                ]
+                            },
+                            "extraOption": {
+                                "description": "%tjs.items.extraOption.description%",
+                                "type": "string",
+                                "default": ""
+                            }
+                        }
+                    }
                 },
-                "tjs.ctagsExtraOption": {
-                    "description": "%tjs.ctagsExtraOption.description%",
-                    "type": "string",
-                    "default": ""
-                },
-                "tjs.ctagsRunOnSave": {
-                    "description": "%tjs.ctagsRunOnSave.description%",
-                    "type": "boolean",
-                    "default": false
+                "tjs.ctagsRunOnSaveLanguages": {
+                    "description": "%tjs.ctagsRunOnSaveLanguages.description%",
+                    "type": "array",
+                    "default": [
+                        "tjs"
+                    ],
+                    "items": {
+                        "type":"string"
+                    }
                 }
             }
         }

@@ -2,9 +2,12 @@
   "tjs.description":"Adding TJS language support for Visual Studio Code",
   "tjs.updateCtags.title": "Update Ctags Index File",
   "tjs.configuration.title": "TJS Configuration",
-  "tjs.ctagsFilePath.description": "File name of the Ctags' index file",
-  "tjs.ctagsRootPath.description": "Root path to search tjs files",
-  "tjs.ctagsFileExtensions.description": "File extesions to handle as tjs file",
-  "tjs.ctagsExtraOption.description": "Command-line options which will be passed to ctags",
-  "tjs.ctagsRunOnSave.description": "Whether recreate index file automatically when tjs file is saved"
+  "tjs.ctagsProcess.description": "Ctags Configuration",
+  "tjs.items.tagFilePath.description": "Path to the Ctags' index file",
+  "tjs.items.searchPath.description": "Path to the directory where ctags search tjs files",
+  "tjs.items.searchRecursive.description": "Whether search tjs files recursively",
+  "tjs.items.runOnSave.description": "Whether recreate the index file automatically when tjs file is saved",
+  "tjs.items.fileExtensions.description": "File extesions to be searched as tjs file",
+  "tjs.items.extraOption.description": "Command-line options which will be passed to ctags",
+  "tjs.ctagsRunOnSaveLanguages.description": "Languages to run ctag process whose runOnSave is true when these languages' file is saved"
 }
