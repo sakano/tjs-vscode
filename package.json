@@ -55,6 +55,18 @@
                 "command": "tjs.updateCtags",
                 "title": "%tjs.updateCtags.title%",
                 "category": "TJS"
+            },
+            {
+                "command": "tjs.showReferencePrompt",
+                "title": "%tjs.showReferencePrompt.title%",
+                "category": "TJS"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "tjs.showReferencePrompt",
+                "key": "ctrl+shift+alt+r",
+                "when": "editorLangId == tjs"
             }
         ],
         "configuration": {
@@ -91,13 +103,11 @@
                             },
                             "searchRecursive": {
                                 "description": "%tjs.items.searchRecursive.description%",
-                                "type": "boolean",
-                                "default": true
+                                "type": "boolean"
                             },
                             "runOnSave": {
                                 "description": "%tjs.items.runOnSave.description%",
-                                "type": "boolean",
-                                "default": false
+                                "type": "boolean"
                             },
                             "fileExtensions": {
                                 "description": "%tjs.items.fileExtensions.description%",
@@ -124,7 +134,35 @@
                         "tjs"
                     ],
                     "items": {
-                        "type":"string"
+                        "type": "string"
+                    }
+                },
+                "tjs.referencePromptEnable": {
+                    "description": "%tjs.referencePromptEnable.description%",
+                    "type": "object",
+                    "default": {
+                        "tjs": true,
+                        "krkrz": true,
+                        "krkr2": false,
+                        "dll": false
+                    },
+                    "properties": {
+                        "tjs": {
+                            "description": "%tjs.referencePromptEnable.tjs.description%",
+                            "type": "boolean"
+                        },
+                        "krkrZ": {
+                            "description": "%tjs.referencePromptEnable.krkrZ.description%",
+                            "type": "boolean"
+                        },
+                        "krkr2": {
+                            "description": "%tjs.referencePromptEnable.krkr2.description%",
+                            "type": "boolean"
+                        },
+                        "dll": {
+                            "description": "%tjs.referencePromptEnable.dll.description%",
+                            "type": "boolean"
+                        }
                     }
                 }
             }
@@ -147,6 +185,8 @@
     "main": "./out/extension",
     "activationEvents": [
         "onLanguage:tjs",
-        "onCommand:tjs.updateCtags"
-    ]
+        "onCommand:tjs.updateCtags",
+        "onCommand:tjs.showReferencePrompt"
+    ],
+    "dependencies": {}
 }
