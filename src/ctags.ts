@@ -26,6 +26,8 @@ export class CTagsSupportProvider {
     };
     private readonly processKeys: string[] = [];
 
+    private readonly runOnSaveLanguages: string[] = [];
+
     public constructor() {
         for (const key in this.defaultProcess) {
             if (this.defaultProcess.hasOwnProperty(key)) {
@@ -36,11 +38,12 @@ export class CTagsSupportProvider {
     }
 
     private loadConfiguration() {
+        const toString = Object.prototype.toString;
+
         this.process = vscode.workspace.getConfiguration("itjs").ctagsProcess;
         if (this.process === undefined) {
             this.process = [this.defaultProcess];
         } else {
-            const toString = Object.prototype.toString;
             this.process.forEach((p, index) => {
                 this.processKeys.forEach(key => {
                     if (p[key] === undefined) {
@@ -51,6 +54,17 @@ export class CTagsSupportProvider {
                     }
                 });
             });
+        }
+
+        const languages = vscode.workspace.getConfiguration("itjs").ctagsRunOnSaveLanguages;
+        this.runOnSaveLanguages.length = 0;
+        if (languages === undefined) {
+            this.runOnSaveLanguages.push("itjs");
+        } else if (toString.call(languages) !== toString.call(languages)) {
+            vscode.window.showErrorMessage(`itjs.languages has wrong value.`);
+            this.runOnSaveLanguages.push("itjs");
+        } else {
+            Array.prototype.push.apply(this.runOnSaveLanguages, languages);
         }
     }
 
@@ -104,7 +118,7 @@ export class CTagsSupportProvider {
     }
 
     public onDidSaveTextDocument(document: vscode.TextDocument) {
-        if (document.languageId === "itjs") {
+        if (this.runOnSaveLanguages.indexOf(document.languageId) >= 0) {
             this.updateCtags(true);
         }
     }
