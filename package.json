@@ -60,42 +60,115 @@
                 "command": "itjs.updateCtags",
                 "title": "%tjs.updateCtags.title%",
                 "category": "iTJS"
+            },
+            {
+                "command": "itjs.showReferencePrompt",
+                "title": "%tjs.showReferencePrompt.title%",
+                "category": "iTJS"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "itjs.showReferencePrompt",
+                "key": "ctrl+shift+alt+r",
+                "when": "editorLangId == itjs"
             }
         ],
         "configuration": {
             "type": "object",
             "title": "%tjs.configuration.title%",
             "properties": {
-                "tjs.ctagsFilePath": {
-                    "description": "%tjs.ctagsFilePath.description%",
-                    "type": "string",
-                    "default": ".tags"
-                },
-                "tjs.ctagsRootPath": {
-                    "description": "%tjs.ctagsRootPath.description%",
-                    "type": "string",
-                    "default": ""
-                },
-                "tjs.ctagsFileExtensions": {
-                    "description": "%tjs.ctagsFileExtensions.description%",
+                "itjs.ctagsProcess": {
+                    "description": "%tjs.ctagsProcess.description%",
                     "type": "array",
+                    "default": [
+                        {
+                            "tagFilePath": ".tags",
+                            "searchPath": "",
+                            "searchRecursive": true,
+                            "runOnSave": false,
+                            "fileExtensions": [
+                                ".itjs"
+                            ],
+                            "extraOption": ""
+                        }
+                    ],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tagFilePath": {
+                                "description": "%tjs.items.tagFilePath.description%",
+                                "type": "string",
+                                "default": ".tags"
+                            },
+                            "searchPath": {
+                                "description": "%tjs.items.searchPath.description%",
+                                "type": "string",
+                                "default": ""
+                            },
+                            "searchRecursive": {
+                                "description": "%tjs.items.searchRecursive.description%",
+                                "type": "boolean"
+                            },
+                            "runOnSave": {
+                                "description": "%tjs.items.runOnSave.description%",
+                                "type": "boolean"
+                            },
+                            "fileExtensions": {
+                                "description": "%tjs.items.fileExtensions.description%",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": [
+                                    ".itjs"
+                                ]
+                            },
+                            "extraOption": {
+                                "description": "%tjs.items.extraOption.description%",
+                                "type": "string",
+                                "default": ""
+                            }
+                        }
+                    }
+                },
+                "itjs.ctagsRunOnSaveLanguages": {
+                    "description": "%tjs.ctagsRunOnSaveLanguages.description%",
+                    "type": "array",
+                    "default": [
+                        "itjs"
+                    ],
                     "items": {
                         "type": "string"
+                    }
+                },
+                "itjs.referencePromptEnable": {
+                    "description": "%tjs.referencePromptEnable.description%",
+                    "type": "object",
+                    "default": {
+                        "tjs": true,
+                        "krkrz": true,
+                        "krkr2": false,
+                        "dll": false
                     },
-                    "default": [
-                        ".tjs",
-                        ".itjs"
-                    ]
-                },
-                "tjs.ctagsExtraOption": {
-                    "description": "%tjs.ctagsExtraOption.description%",
-                    "type": "string",
-                    "default": ""
-                },
-                "tjs.ctagsRunOnSave": {
-                    "description": "%tjs.ctagsRunOnSave.description%",
-                    "type": "boolean",
-                    "default": false
+                    "properties": {
+                        "tjs": {
+                            "description": "%tjs.referencePromptEnable.tjs.description%",
+                            "type": "boolean"
+                        },
+                        "krkrZ": {
+                            "description": "%tjs.referencePromptEnable.krkrZ.description%",
+                            "type": "boolean"
+                        },
+                        "krkr2": {
+                            "description": "%tjs.referencePromptEnable.krkr2.description%",
+                            "type": "boolean"
+                        },
+                        "dll": {
+                            "description": "%tjs.referencePromptEnable.dll.description%",
+                            "type": "boolean"
+                        }
+                    }
                 }
             }
         }
@@ -117,6 +190,8 @@
     "main": "./out/extension",
     "activationEvents": [
         "onLanguage:itjs",
-        "onCommand:itjs.updateCtags"
-    ]
+        "onCommand:itjs.updateCtags",
+        "onCommand:itjs.showReferencePrompt"
+    ],
+    "dependencies": {}
 }

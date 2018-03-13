@@ -1,10 +1,19 @@
 {
-  "tjs.description":"Visual Studio CodeにTJSファイルの機能を追加します",
+  "tjs.description": "Visual Studio CodeにTJSファイルの機能を追加します",
   "tjs.updateCtags.title": "Ctagsのインデックスファイルを更新",
+  "tjs.showReferencePrompt.title": "リファレンス検索プロンプトを表示",
   "tjs.configuration.title": "TJSの設定",
-  "tjs.ctagsFilePath.description": "Ctagsのインデックスファイルのファイル名",
-  "tjs.ctagsRootPath.description": "tjsファイルを検索する際のルートパス",
-  "tjs.ctagsFileExtensions.description": "tjsファイルとして扱うファイル拡張子",
-  "tjs.ctagsExtraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
-  "tjs.ctagsRunOnSave.description": "tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか"
+  "tjs.ctagsProcess.description": "Ctagsの設定",
+  "tjs.items.tagFilePath.description": "Ctagsのインデックスファイルへのパス",
+  "tjs.items.searchPath.description": "ctagsがtjsファイルを検索するディレクトリへのパス",
+  "tjs.items.searchRecursive.description": "tjsファイルを再帰的に検索するか",
+  "tjs.items.runOnSave.description": "tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか",
+  "tjs.items.fileExtensions.description": "tjsファイルとして検索されるファイル拡張子",
+  "tjs.items.extraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
+  "tjs.ctagsRunOnSaveLanguages.description": "ファイルが保存されたときrunOnSaveがtrueのctagsプロセスを実行する言語",
+  "tjs.referencePromptEnable.description": "リファレンスプロンプトに表示するか",
+  "tjs.referencePromptEnable.krkrZ.description": "吉里吉里Zドキュメント",
+  "tjs.referencePromptEnable.krkr2.description": "吉里吉里2ドキュメント",
+  "tjs.referencePromptEnable.tjs.description": "TJSドキュメント",
+  "tjs.referencePromptEnable.dll.description": "DLLのドキュメント"
 }
