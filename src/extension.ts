@@ -6,7 +6,7 @@ import { CTagsSupportProvider } from './ctags';
 
 export function activate(ctx: ExtensionContext): void {
     const referenceProvider = new ReferenceProvider();
-    ctx.subscriptions.push(vscode.commands.registerCommand("tjs.showReferencePrompt", () => referenceProvider.showPrompt()));
+    ctx.subscriptions.push(vscode.commands.registerCommand("tjs.openReferencePallet", () => referenceProvider.openPallet()));
     ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => referenceProvider.onDidChangeConfiguration()));
 
     const ctagsSupportProvider = new CTagsSupportProvider();
