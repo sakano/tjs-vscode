@@ -1,19 +1,19 @@
 {
   "tjs.description": "Visual Studio CodeにTJSファイルの機能を追加します",
   "tjs.updateCtags.title": "Ctagsのインデックスファイルを更新",
-  "tjs.showReferencePrompt.title": "リファレンス検索プロンプトを表示",
+  "tjs.openReferencePallet.title": "リファレンス検索パレットを開く",
   "tjs.configuration.title": "TJSの設定",
   "tjs.ctagsProcess.description": "Ctagsの設定",
   "tjs.items.tagFilePath.description": "Ctagsのインデックスファイルへのパス",
-  "tjs.items.searchPath.description": "ctagsがtjsファイルを検索するディレクトリへのパス",
+  "tjs.items.searchPath.description": "Ctagsがtjsファイルを検索するディレクトリへのパス",
   "tjs.items.searchRecursive.description": "tjsファイルを再帰的に検索するか",
   "tjs.items.runOnSave.description": "tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか",
   "tjs.items.fileExtensions.description": "tjsファイルとして検索されるファイル拡張子",
   "tjs.items.extraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
   "tjs.ctagsRunOnSaveLanguages.description": "ファイルが保存されたときrunOnSaveがtrueのctagsプロセスを実行する言語",
-  "tjs.referencePromptEnable.description": "リファレンスプロンプトに表示するか",
-  "tjs.referencePromptEnable.krkrZ.description": "吉里吉里Zドキュメント",
-  "tjs.referencePromptEnable.krkr2.description": "吉里吉里2ドキュメント",
-  "tjs.referencePromptEnable.tjs.description": "TJSドキュメント",
-  "tjs.referencePromptEnable.dll.description": "DLLのドキュメント"
+  "tjs.referencePalletEnable.description": "リファレンスプロンプトに表示するか",
+  "tjs.referencePalletEnable.krkrZ.description": "吉里吉里Zドキュメント",
+  "tjs.referencePalletEnable.krkr2.description": "吉里吉里2ドキュメント",
+  "tjs.referencePalletEnable.tjs.description": "TJSドキュメント",
+  "tjs.referencePalletEnable.dll.description": "DLLのドキュメント"
 }

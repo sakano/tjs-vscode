@@ -8,6 +8,26 @@ Visual Studio CodeにTJSファイル用の機能を追加します。 KAG/KAGEX�
 - Ctagsをサポート。
 - classやfunction, forループなどのスニペット。
 - 「//#region」と「//#endregion」で囲まれた部分の折りたたみ。
+- リファレンス検索パレットでAPIリファレンスを開けます
+
+
+# リファレンス検索パレット
+次の手順でAPIリファレンスを開けます。
+1. Ctrl+Shift+Pを押してコマンドパレットを開きます。
+2. 「TJS: Open reference search palette」というコマンドを実行します。
+3. リファレンスを開きたいクラス名を入力します。
+デフォルトでは「Ctrl+Shift+Alt+R」がリファレンス検索パレットを開くキーボードショートカットです。
+
+## 設定
+次の設定で使用するリファレンスを変更できます。デフォルトではTJSリファレンスと吉里吉里Zリファレンスが使われます。
+```js
+  "tjs.referencePalletEnable": {
+    "tjs": true, // TJSリファレンス
+    "krkrz": true, // 吉里吉里Zリファレンス
+    "krkr2": false, // 吉里吉里2リファレンス
+    "dll": false // DLLプラグインのリファレンス
+  }
+```
 
 
 # Ctagsサポートについて
@@ -25,21 +45,42 @@ Visual Studio CodeにTJSファイル用の機能を追加します。 KAG/KAGEX�
 以上で、「.tags」というファイルが開いたディレクトリに作成されctagsx[ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx)の機能を使えるようになります。
 
 ## 設定
-### tjs.ctagsRunOnSave
-trueならtjsファイルが保存されたときにインデックスファイルを自動的に再生成するようになります。デフォルトではfalseです。
+次の設定でCtagsの動作を変更できます。
+```js
+  "tjs.ctagsProcess": [
+    {
+      "tagFilePath": ".tags", // Ctagsのインデックスファイルへのパス
+      "searchPath": "", // Ctagsがtjsファイルを検索するディレクトリへのパス
+      "searchRecursive": true, // tjsファイルを再帰的に検索するか
+      "runOnSave": false, // tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか
+      "fileExtensions": [ // tjsファイルとして検索されるファイル拡張子
+        ".tjs"
+      ],
+      "extraOption": "" // Ctagsに渡す追加のコマンドラインオプション
+    }
+  ]
+```
+複数のインデックスファイルを生成するにはtjs.ctagsProcessに複数設定してください。
 
-### tjs.ctagsFilePath
-インデックスファイルの名前です。デフォルトでは".tags"です
-
-### tjs.ctagsRootpath
-ctagsがtjsファイルを検索するディレクトリへの、ワークスペースからの相対パスです。デフォルトの""ではワークスペースの全てのtjsファイルが検索されます。
-例えば、"src\\"と設定するとワークスペースのsrcディレクトリ以下のtjsファイルのみが検索されます。
-
-### tjs.ctagsFileExtensions
-ctagsのファイル検索時にtjsファイルとして認識される拡張子です。デフォルトでは拡張子が".tjs"のファイルのみがtjsファイルとして扱われます。
-
-### tjs.ctagsExtraOption
-ctagsを実行するときに渡される追加のコマンドラインオプションです。
+次の設定はsrcディレクトリとoutディレクトリにインデックスファイルを生成する例です。
+```js
+  "tjs.ctagsProcess": [
+    // srcディレクトリ内のtjsファイルを検索してsrc/.tagsを生成する
+    {
+      "tagFilePath": "src/.tags",
+      "searchPath": "src/",
+      "searchRecursive": true,
+      "runOnSave": true,
+    },
+    // outディレクトリ内のtjsファイルを検索してout/.tagsを生成する
+    {
+      "tagFilePath": "out/.tags",
+      "searchPath": "out/",
+      "searchRecursive": true,
+      "runOnSave": true,
+    }
+  ]
+```
 
 
 # 連絡先

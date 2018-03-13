@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [1.1.0]
+- Add reference search pallet
+- Remove hover hints
+- Change configurations to run ctags multiple times once
+
 ## [1.0.2]
 - Update internal version
 

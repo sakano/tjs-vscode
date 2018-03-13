@@ -2,7 +2,7 @@
     "name": "itjs-vscode",
     "displayName": "iTJS",
     "description": "%tjs.description%",
-    "version": "1.0.2",
+    "version": "1.1.0",
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
@@ -62,14 +62,14 @@
                 "category": "iTJS"
             },
             {
-                "command": "itjs.showReferencePrompt",
-                "title": "%tjs.showReferencePrompt.title%",
+                "command": "itjs.openReferencePallet",
+                "title": "%tjs.openReferencePallet.title%",
                 "category": "iTJS"
             }
         ],
         "keybindings": [
             {
-                "command": "itjs.showReferencePrompt",
+                "command": "itjs.openReferencePallet",
                 "key": "ctrl+shift+alt+r",
                 "when": "editorLangId == itjs"
             }
@@ -142,8 +142,8 @@
                         "type": "string"
                     }
                 },
-                "itjs.referencePromptEnable": {
-                    "description": "%tjs.referencePromptEnable.description%",
+                "itjs.referencePalletEnable": {
+                    "description": "%tjs.referencePalletEnable.description%",
                     "type": "object",
                     "default": {
                         "tjs": true,
@@ -153,19 +153,19 @@
                     },
                     "properties": {
                         "tjs": {
-                            "description": "%tjs.referencePromptEnable.tjs.description%",
+                            "description": "%tjs.referencePalletEnable.tjs.description%",
                             "type": "boolean"
                         },
                         "krkrZ": {
-                            "description": "%tjs.referencePromptEnable.krkrZ.description%",
+                            "description": "%tjs.referencePalletEnable.krkrZ.description%",
                             "type": "boolean"
                         },
                         "krkr2": {
-                            "description": "%tjs.referencePromptEnable.krkr2.description%",
+                            "description": "%tjs.referencePalletEnable.krkr2.description%",
                             "type": "boolean"
                         },
                         "dll": {
-                            "description": "%tjs.referencePromptEnable.dll.description%",
+                            "description": "%tjs.referencePalletEnable.dll.description%",
                             "type": "boolean"
                         }
                     }
@@ -191,7 +191,7 @@
     "activationEvents": [
         "onLanguage:itjs",
         "onCommand:itjs.updateCtags",
-        "onCommand:itjs.showReferencePrompt"
+        "onCommand:itjs.openReferencePallet"
     ],
     "dependencies": {}
 }
