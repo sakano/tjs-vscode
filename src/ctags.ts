@@ -86,7 +86,7 @@ export class CTagsSupportProvider {
                 vscode.window.showErrorMessage(`itjs.ctagsProcess[${index}].fileExtensions is empty.`);
                 continue;
             }
-            let langmap: string = p.fileExtensions.join(",");
+            let langmap: string = p.fileExtensions.join("");
             let cmd: string = "ctags" +
                 " --langdef=itjs" +
                 ` --langmap=itjs:${langmap}` +
