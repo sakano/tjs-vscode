@@ -42,7 +42,7 @@ Visual Studio CodeにTJSファイル用の機能を追加します。 KAG/KAGEX�
 2. 「Ctrl+Shift+P」を押してコマンドパレットを開きます
 3. 「TJS: Update Ctags File」というコマンドを実行します。
 
-以上で、「.tags」というファイルが開いたディレクトリに作成されctagsx[ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx)の機能を使えるようになります。
+以上で、「.tags」というファイルが開いたディレクトリに作成され[ctagsx](https://marketplace.visualstudio.com/items?itemName=jtanx.ctagsx)の機能を使えるようになります。
 
 ## 設定
 次の設定でCtagsの動作を変更できます。
