@@ -13,7 +13,7 @@ Adds TJS language support for Visual Studio Code. If you needs KAG/KAGEX support
 - The Reference search pallet to open API references
 
 
-# Refrence search palette
+# Reference search palette
 You can open API references with your browser by following the steps
 1. Push Ctrl+Shift+P to open the Command Pallet.
 3. Execute the command "TJS: Open reference search palette".
