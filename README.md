@@ -21,12 +21,12 @@ You can open API references with your browser by following the steps
 "Ctrl+Shift+Alt+R" is default shortcut key to open reference search palette.
 
 ## Configuration
-You can choose references to search by following configuration. By default, TJS reference and kirikirZ reference is enabled.
+You can choose references to search by following configuration. By default, TJS reference and kirikiriZ reference is enabled.
 ```js
   "tjs.referencePalletEnable": {
     "tjs": true, // TJS reference
-    "krkrz": true, // kirikirZ reference
-    "krkr2": false, // kirikir2 reference
+    "krkrz": true, // kirikiriZ reference
+    "krkr2": false, // kirikiri2 reference
     "dll": false // some dll reference
   }
 ```
@@ -53,7 +53,7 @@ You can change ctags behavior by the following configuration.
       "searchPath": "", // Path to the directory where ctags search tjs files
       "searchRecursive": true, // Whether search tjs files recursively
       "runOnSave": false, // Whether recreate the index file automatically when tjs file is saved
-      "fileExtensions": [ // File extesions to be searched as tjs file
+      "fileExtensions": [ // File extensions to be searched as tjs file
         ".tjs"
       ],
       "extraOption": "" // Command-line options which will be passed to ctags

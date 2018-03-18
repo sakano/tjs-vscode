@@ -8,12 +8,12 @@
   "tjs.items.searchPath.description": "Path to the directory where ctags search tjs files",
   "tjs.items.searchRecursive.description": "Whether search tjs files recursively",
   "tjs.items.runOnSave.description": "Whether recreate the index file automatically when tjs file is saved",
-  "tjs.items.fileExtensions.description": "File extesions to be searched as tjs file",
+  "tjs.items.fileExtensions.description": "File extensions to be searched as tjs file",
   "tjs.items.extraOption.description": "Command-line options which will be passed to ctags",
-  "tjs.ctagsRunOnSaveLanguages.description": "Languages to run ctag process whose runOnSave is true when these languages' file is saved",
-  "tjs.referencePalletEnable.description": "Whether to show in the reference serach pallet",
-  "tjs.referencePalletEnable.krkrZ.description": "kirikir Z Documents",
-  "tjs.referencePalletEnable.krkr2.description": "kirkiri 2 Documents",
+  "tjs.ctagsRunOnSaveLanguages.description": "Languages to run ctags process whose runOnSave is true when these languages' file is saved",
+  "tjs.referencePalletEnable.description": "Whether to show in the reference search pallet",
+  "tjs.referencePalletEnable.krkrZ.description": "kirikiri Z Documents",
+  "tjs.referencePalletEnable.krkr2.description": "kirikiri 2 Documents",
   "tjs.referencePalletEnable.tjs.description": "TJS Documents",
   "tjs.referencePalletEnable.dll.description": "DLL Documents"
 }
