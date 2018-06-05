@@ -71,7 +71,9 @@ export class CTagsSupportProvider {
     public updateCtags(save: boolean = false) {
         const rootPath = vscode.workspace.rootPath;
         if (rootPath === undefined) {
-            vscode.window.showErrorMessage("No project currently opened");
+            if (!save) {
+                vscode.window.showErrorMessage("No project currently opened");
+            }
             return;
         }
 
