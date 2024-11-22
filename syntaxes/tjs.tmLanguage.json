@@ -115,25 +115,12 @@
             }
         },
         {
-            "begin": "\\b(var|const)\\b",
-            "end": ";",
-            "beginCaptures": {
-                "1": { "name": "storage.type.tjs" }
-            },
-            "patterns": [
-                { "include": "#preprocessed" },
-                {
-                    "begin": "\\b(\\w+)(\\s*:\\s*(\\w+))?\\b",
-                    "end": ",|(?=;)",
-                    "beginCaptures": {
-                        "1": { "name": "variable.other.tjs" },
-                        "3": { "name": "entity.name.type.tjs" }
-                    },
-                    "patterns": [
-                        { "include": "#expression" }
-                    ]
-                }
-            ]
+            "match": "\\b(var|const)\\s+(\\w+)(\\s*:\\s*(\\w+))?",
+            "captures": {
+                "1": { "name": "storage.type.tjs" },
+                "2": { "name": "variable.other.tjs" },
+                "4": { "name": "entity.name.type.tjs" }
+            }
         }
       ]
     },
