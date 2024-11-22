@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [1.1.2]
+- Fix syntax highlight for var/const
+
 ## [1.1.1]
 - Fix reference texts
 
