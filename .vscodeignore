@@ -5,5 +5,5 @@ out/**/*.map
 src/**
 **/*.map
 .gitignore
-tsconfig.json
-tslint.json
+**/tsconfig.json
+**/eslint.config.mjs
