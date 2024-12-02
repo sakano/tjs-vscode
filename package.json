@@ -2,7 +2,7 @@
     "name": "tjs-vscode",
     "displayName": "TJS",
     "description": "%tjs.description%",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
