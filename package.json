@@ -189,8 +189,5 @@
         "onLanguage:tjs",
         "onCommand:tjs.updateCtags",
         "onCommand:tjs.openReferencePallet"
-    ],
-    "dependencies": {
-        "node": "^20.18.1"
-    }
+    ]
 }
