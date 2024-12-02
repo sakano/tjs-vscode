@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [1.2.1]
+- Remove unnecessary files
+
 ## [1.2.0]
 - Support color picker for color literals like 0xRRGGBB and 0xAARRGGBB
 
