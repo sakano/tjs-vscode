@@ -6,6 +6,32 @@
     "publisher": "Biscrat",
     "license": "MIT",
     "icon": "images/tjsicon.png",
+    "files": [
+        "dist/extension.js",
+        "images/tjsicon.png",
+        "language-configuration.json",
+        "syntaxes/tjs.tmLanguage.json",
+        "snippets/tjs.json",
+        "package.nls.json",
+        "package.nls.ja.json",
+        "README.md",
+        "README-ja.md",
+        "CHANGELOG.md",
+        "LICENSE"
+    ],
+    "packageManager": "npm@11.16.0",
+    "devEngines": {
+        "runtime": {
+            "name": "node",
+            "version": "24.18.1",
+            "onFail": "error"
+        },
+        "packageManager": {
+            "name": "npm",
+            "version": "11.16.0",
+            "onFail": "error"
+        }
+    },
     "engines": {
         "node": "24.x",
         "vscode": "^1.125.0"
@@ -202,20 +228,34 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile",
-        "test": "vscode-test && node ./scripts/run-untrusted-tests.mjs"
+        "clean": "node ./scripts/clean.mjs",
+        "check-types": "tsc --noEmit -p ./",
+        "bundle": "node ./esbuild.mjs",
+        "bundle:production": "node ./esbuild.mjs --production",
+        "compile": "node ./scripts/run-scripts.mjs check-types bundle",
+        "compile-tests": "tsc -p ./ --outDir out",
+        "watch": "node ./scripts/run-scripts.mjs --parallel watch:bundle watch:types",
+        "watch:bundle": "node ./esbuild.mjs --watch",
+        "watch:types": "tsc --noEmit --watch -p ./",
+        "package": "node ./scripts/run-scripts.mjs clean check-types bundle:production",
+        "vscode:prepublish": "npm run package",
+        "pretest": "node ./scripts/run-scripts.mjs clean check-types bundle compile-tests",
+        "test": "vscode-test && node ./scripts/run-untrusted-tests.mjs",
+        "vsix:list": "vsce ls --tree --no-dependencies",
+        "vsix:ls": "node ./scripts/run-scripts.mjs package vsix:list",
+        "vsix": "node ./scripts/package-vsix.mjs",
+        "vsix:verify": "node ./scripts/package-vsix.mjs --verify"
     },
     "devDependencies": {
-        "@types/vscode": "1.125.0",
         "@types/mocha": "^10.0.10",
         "@types/node": "24.x",
+        "@types/vscode": "1.125.0",
         "@typescript-eslint/eslint-plugin": "^8.67.0",
         "@typescript-eslint/parser": "^8.67.0",
         "@vscode/test-cli": "^0.0.15",
         "@vscode/test-electron": "^3.1.0",
+        "@vscode/vsce": "3.9.2",
+        "esbuild": "0.28.1",
         "eslint": "^10.8.1",
         "typescript": "^6.0.3"
     },
@@ -225,5 +265,14 @@
             "serialize-javascript": "^7.1.0"
         }
     },
-    "main": "./out/extension"
+    "allowScripts": {
+        "@vscode/vsce-sign@2.0.9": true,
+        "esbuild@0.28.1": true,
+        "keytar": false
+    },
+    "vsce": {
+        "dependencies": false,
+        "githubBranch": "master"
+    },
+    "main": "./dist/extension.js"
 }

@@ -1,3 +1,7 @@
+/**
+ * @fileOverview Runs extension integration tests in a genuinely untrusted VS Code workspace.
+ */
+
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

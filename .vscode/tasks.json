@@ -5,12 +5,34 @@
     "tasks": [
         {
             "type": "npm",
-            "script": "watch",
+            "script": "watch:bundle",
+            "problemMatcher": "$esbuild-watch",
+            "isBackground": true,
+            "presentation": {
+                "group": "watch",
+                "panel": "dedicated",
+                "reveal": "never"
+            }
+        },
+        {
+            "type": "npm",
+            "script": "watch:types",
             "problemMatcher": "$tsc-watch",
             "isBackground": true,
             "presentation": {
+                "group": "watch",
+                "panel": "dedicated",
                 "reveal": "never"
-            },
+            }
+        },
+        {
+            "label": "watch",
+            "dependsOn": [
+                "npm: watch:bundle",
+                "npm: watch:types"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
