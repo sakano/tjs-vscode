@@ -1,5 +1,6 @@
 {
   "tjs.description": "Visual Studio CodeにTJSファイルの機能を追加します",
+  "tjs.untrustedWorkspaces.description": "シンタックスハイライト、色、スニペット、リファレンス検索は利用できます。ワークスペース設定を使って外部プロセスを起動するため、Ctagsの実行は無効になります。",
   "tjs.updateCtags.title": "Ctagsのインデックスファイルを更新",
   "tjs.openReferencePallet.title": "リファレンス検索パレットを開く",
   "tjs.configuration.title": "TJSの設定",
@@ -10,6 +11,9 @@
   "tjs.items.runOnSave.description": "tjsファイルが保存されたときに自動的にインデックスファイルを再生成するか",
   "tjs.items.fileExtensions.description": "tjsファイルとして検索されるファイル拡張子",
   "tjs.items.extraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
+  "tjs.items.extraOption.deprecationMessage": "非推奨です。Ctagsのオプションを1要素ずつ指定する`extraArgs`を使用してください。`extraOption`は将来削除されます。",
+  "tjs.items.extraArgs.description": "Ctagsに渡す追加オプションです。1要素につき1オプションを指定します。ファイル引数と入出力を制御するオプションは拡張機能が予約しています。",
+  "tjs.items.timeoutMs.description": "Ctagsの最大実行時間（ミリ秒）です。0にするとタイムアウトを無効化します。",
   "tjs.ctagsRunOnSaveLanguages.description": "ファイルが保存されたときrunOnSaveがtrueのctagsプロセスを実行する言語",
   "tjs.referencePalletEnable.description": "リファレンスプロンプトに表示するか",
   "tjs.referencePalletEnable.krkrZ.description": "吉里吉里Zドキュメント",

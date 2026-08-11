@@ -1,0 +1,17 @@
+{
+    "tjs.ctagsProcess": [
+        {
+            "tagFilePath": ".test-output.tags",
+            "searchPath": "",
+            "searchRecursive": true,
+            "runOnSave": false,
+            "fileExtensions": [
+                ".tjs"
+            ],
+            "extraArgs": [
+                "--exclude=folder;literal"
+            ],
+            "timeoutMs": 5000
+        }
+    ]
+}

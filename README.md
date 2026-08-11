@@ -56,7 +56,10 @@ You can change ctags behavior by the following configuration.
       "fileExtensions": [ // File extensions to be searched as tjs file
         ".tjs"
       ],
-      "extraOption": "" // Command-line options which will be passed to ctags
+      "extraArgs": [ // One ctags option per item (optional)
+        "--exclude=node_modules"
+      ],
+      "timeoutMs": 120000 // 0 disables the timeout
     }
   ]
 ```

@@ -10,6 +10,18 @@
         "node": "24.x",
         "vscode": "^1.125.0"
     },
+    "extensionKind": [
+        "workspace"
+    ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "%tjs.untrustedWorkspaces.description%",
+            "restrictedConfigurations": [
+                "tjs.ctagsProcess"
+            ]
+        }
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/sakano/tjs-vscode.git"
@@ -55,7 +67,8 @@
             {
                 "command": "tjs.updateCtags",
                 "title": "%tjs.updateCtags.title%",
-                "category": "TJS"
+                "category": "TJS",
+                "enablement": "isWorkspaceTrusted"
             },
             {
                 "command": "tjs.openReferencePallet",
@@ -77,6 +90,7 @@
                 "tjs.ctagsProcess": {
                     "description": "%tjs.ctagsProcess.description%",
                     "type": "array",
+                    "scope": "resource",
                     "default": [
                         {
                             "tagFilePath": ".tags",
@@ -86,7 +100,8 @@
                             "fileExtensions": [
                                 ".tjs"
                             ],
-                            "extraOption": ""
+                            "extraArgs": [],
+                            "timeoutMs": 120000
                         }
                     ],
                     "items": {
@@ -123,7 +138,23 @@
                             "extraOption": {
                                 "description": "%tjs.items.extraOption.description%",
                                 "type": "string",
-                                "default": ""
+                                "markdownDeprecationMessage": "%tjs.items.extraOption.deprecationMessage%"
+                            },
+                            "extraArgs": {
+                                "description": "%tjs.items.extraArgs.description%",
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "default": []
+                            },
+                            "timeoutMs": {
+                                "description": "%tjs.items.timeoutMs.description%",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647,
+                                "default": 120000
                             }
                         }
                     }
@@ -131,6 +162,7 @@
                 "tjs.ctagsRunOnSaveLanguages": {
                     "description": "%tjs.ctagsRunOnSaveLanguages.description%",
                     "type": "array",
+                    "scope": "resource",
                     "default": [
                         "tjs"
                     ],
@@ -174,7 +206,7 @@
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile",
-        "test": "vscode-test"
+        "test": "vscode-test && node ./scripts/run-untrusted-tests.mjs"
     },
     "devDependencies": {
         "@types/vscode": "1.125.0",

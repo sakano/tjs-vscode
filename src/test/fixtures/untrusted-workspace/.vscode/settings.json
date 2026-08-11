@@ -1,0 +1,11 @@
+{
+    "tjs.ctagsProcess": [
+        {
+            "tagFilePath": "../outside.tags",
+            "runOnSave": true,
+            "extraArgs": [
+                "--exclude=untrusted-workspace-value"
+            ]
+        }
+    ]
+}

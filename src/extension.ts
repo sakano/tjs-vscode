@@ -11,9 +11,11 @@ export function activate(ctx: ExtensionContext): void {
     ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => referenceProvider.onDidChangeConfiguration()));
 
     const ctagsSupportProvider = new CTagsSupportProvider();
+    ctx.subscriptions.push(ctagsSupportProvider);
     ctx.subscriptions.push(vscode.commands.registerCommand("tjs.updateCtags", () => ctagsSupportProvider.updateCtags()));
-    ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => ctagsSupportProvider.onDidChangeConfiguration()));
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => ctagsSupportProvider.onDidSaveTextDocument(document)));
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
+        void ctagsSupportProvider.onDidSaveTextDocument(document);
+    }));
 
     ctx.subscriptions.push(vscode.languages.registerColorProvider({ language: "tjs" }, new ColorProvider()));
 }
