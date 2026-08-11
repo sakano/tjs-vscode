@@ -172,8 +172,8 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+        "pretest": "npm run compile",
+        "test": "vscode-test"
     },
     "devDependencies": {
         "@types/vscode": "^1.125.0",
@@ -181,8 +181,16 @@
         "@types/node": "24.x",
         "@typescript-eslint/eslint-plugin": "^8.67.0",
         "@typescript-eslint/parser": "^8.67.0",
+        "@vscode/test-cli": "^0.0.15",
+        "@vscode/test-electron": "^3.1.0",
         "eslint": "^10.8.1",
         "typescript": "^6.0.3"
+    },
+    "overrides": {
+        "mocha": {
+            "diff": "^8.0.3",
+            "serialize-javascript": "^7.1.0"
+        }
     },
     "main": "./out/extension",
     "activationEvents": [
