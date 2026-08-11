@@ -23,7 +23,7 @@ Visual Studio CodeにTJSファイル用の機能を追加します。 KAG/KAGEX�
 ```js
   "tjs.referencePalletEnable": {
     "tjs": true, // TJSリファレンス
-    "krkrz": true, // 吉里吉里Zリファレンス
+    "krkrZ": true, // 吉里吉里Zリファレンス
     "krkr2": false, // 吉里吉里2リファレンス
     "dll": false // DLLプラグインのリファレンス
   }

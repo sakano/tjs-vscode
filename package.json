@@ -175,7 +175,7 @@
                     "type": "object",
                     "default": {
                         "tjs": true,
-                        "krkrz": true,
+                        "krkrZ": true,
                         "krkr2": false,
                         "dll": false
                     },

@@ -25,7 +25,7 @@ You can choose references to search by following configuration. By default, TJS 
 ```js
   "tjs.referencePalletEnable": {
     "tjs": true, // TJS reference
-    "krkrz": true, // kirikiriZ reference
+    "krkrZ": true, // kirikiriZ reference
     "krkr2": false, // kirikiri2 reference
     "dll": false // some dll reference
   }
