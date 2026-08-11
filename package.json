@@ -132,10 +132,12 @@
                     ],
                     "items": {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
                             "tagFilePath": {
                                 "description": "%tjs.items.tagFilePath.description%",
                                 "type": "string",
+                                "minLength": 1,
                                 "default": ".tags"
                             },
                             "searchPath": {
@@ -145,17 +147,21 @@
                             },
                             "searchRecursive": {
                                 "description": "%tjs.items.searchRecursive.description%",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": true
                             },
                             "runOnSave": {
                                 "description": "%tjs.items.runOnSave.description%",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": false
                             },
                             "fileExtensions": {
                                 "description": "%tjs.items.fileExtensions.description%",
                                 "type": "array",
+                                "minItems": 1,
                                 "items": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "minLength": 1
                                 },
                                 "default": [
                                     ".tjs"
@@ -193,12 +199,15 @@
                         "tjs"
                     ],
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     }
                 },
                 "tjs.referencePalletEnable": {
                     "description": "%tjs.referencePalletEnable.description%",
                     "type": "object",
+                    "scope": "window",
+                    "additionalProperties": false,
                     "default": {
                         "tjs": true,
                         "krkrZ": true,
@@ -208,19 +217,23 @@
                     "properties": {
                         "tjs": {
                             "description": "%tjs.referencePalletEnable.tjs.description%",
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": true
                         },
                         "krkrZ": {
                             "description": "%tjs.referencePalletEnable.krkrZ.description%",
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": true
                         },
                         "krkr2": {
                             "description": "%tjs.referencePalletEnable.krkr2.description%",
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                         },
                         "dll": {
                             "description": "%tjs.referencePalletEnable.dll.description%",
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                         }
                     }
                 }
