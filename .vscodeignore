@@ -6,5 +6,6 @@ out/**/*.map
 src/**
 **/*.map
 .gitignore
+.nvmrc
 **/tsconfig.json
 **/eslint.config.mjs
