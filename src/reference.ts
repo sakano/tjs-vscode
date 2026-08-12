@@ -5,6 +5,15 @@ interface Reference extends vscode.QuickPickItem {
     url: string;
 }
 
+interface ReferenceProviderOptions {
+    getReferencePalletConfiguration?: () => Readonly<Record<string, boolean | undefined>> | undefined;
+    showQuickPick?: (
+        items: readonly Reference[],
+        options: vscode.QuickPickOptions,
+    ) => Thenable<Reference | undefined>;
+    openUri?: (uri: vscode.Uri) => Thenable<unknown>;
+}
+
 export class ReferenceProvider {
     private readonly tjsReferenceMap: Reference[] = [
         { label: "Array", description: "(TJS)", url: "http://krkrz.github.io/docs/tjs2/j/contents/array.html" },
@@ -111,13 +120,25 @@ export class ReferenceProvider {
     ];
 
     private readonly pickItems: Reference[] = [];
+    private readonly getReferencePalletConfiguration: () => Readonly<Record<string, boolean | undefined>> | undefined;
+    private readonly showQuickPick: (
+        items: readonly Reference[],
+        options: vscode.QuickPickOptions,
+    ) => Thenable<Reference | undefined>;
+    private readonly openUri: (uri: vscode.Uri) => Thenable<unknown>;
 
-    public constructor() {
+    public constructor(options: ReferenceProviderOptions = {}) {
+        this.getReferencePalletConfiguration = options.getReferencePalletConfiguration
+            ?? (() => vscode.workspace.getConfiguration("tjs").referencePalletEnable);
+        this.showQuickPick = options.showQuickPick
+            ?? ((items, quickPickOptions) => vscode.window.showQuickPick(items, quickPickOptions));
+        this.openUri = options.openUri
+            ?? (uri => vscode.commands.executeCommand('vscode.open', uri));
         this.loadConfiguration();
     }
 
     private loadConfiguration() {
-        const config = vscode.workspace.getConfiguration("tjs").referencePalletEnable;
+        const config = this.getReferencePalletConfiguration();
         const check = (key: string, def: boolean): boolean => {
             if (def) {
                 return config === undefined || config[key] === undefined || config[key];
@@ -140,20 +161,18 @@ export class ReferenceProvider {
         return aStr > bStr ? 1 : aStr === bStr ? 0 : -1;
     }
 
-    public openPallet() {
+    public async openPallet(): Promise<void> {
         const options: vscode.QuickPickOptions = {
             "placeHolder": "Which reference will you open?",
             "matchOnDescription": true
         };
 
-        vscode.window.showQuickPick<Reference>(this.pickItems, options).then(item => {
-            if (item === undefined) { return; }
-            vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(item.url));
-        });
+        const item = await this.showQuickPick(this.pickItems, options);
+        if (item === undefined) { return; }
+        await this.openUri(vscode.Uri.parse(item.url));
     }
 
     public onDidChangeConfiguration() {
         this.loadConfiguration();
     }
 }
-

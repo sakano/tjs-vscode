@@ -4,7 +4,7 @@
             "tagFilePath": ".test-output.tags",
             "searchPath": "",
             "searchRecursive": true,
-            "runOnSave": false,
+            "runOnSave": true,
             "fileExtensions": [
                 ".tjs"
             ],

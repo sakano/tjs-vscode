@@ -6,6 +6,50 @@ import { PassThrough } from 'node:stream';
 import * as vscode from 'vscode';
 import { CTagsSupportProvider } from '../ctags';
 
+interface FakeSpawnInvocation {
+    command: string;
+    args: readonly string[];
+    options: import('node:child_process').SpawnOptions;
+}
+
+function createSuccessfulFakeSpawn(
+    onInvocation?: (invocation: FakeSpawnInvocation) => void | Promise<void>,
+): typeof import('node:child_process').spawn {
+    return ((
+        command: string,
+        args: readonly string[],
+        options: import('node:child_process').SpawnOptions,
+    ) => {
+        const child = new EventEmitter() as EventEmitter & {
+            stdin: PassThrough;
+            stdout: PassThrough;
+            stderr: PassThrough;
+        };
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+
+        queueMicrotask(() => {
+            void (async () => {
+                await onInvocation?.({ command, args, options });
+                const outputOptionIndex = args.indexOf('-f');
+                const temporaryTagFilePath = args[outputOptionIndex + 1];
+                if (outputOptionIndex < 0 || temporaryTagFilePath === undefined) {
+                    throw new Error('ctags output path was not provided');
+                }
+                await writeFile(temporaryTagFilePath, 'new tags\n', 'utf8');
+                child.stdout.end('generated tags\n');
+                child.stderr.end('diagnostic output\n');
+                child.emit('close', 0, null);
+            })().catch(error => {
+                child.emit('error', error);
+                child.emit('close', 1, null);
+            });
+        });
+        return child;
+    }) as unknown as typeof import('node:child_process').spawn;
+}
+
 suite('Extension Test Suite', () => {
     // セキュリティ変更後も拡張機能が正常に起動し、公開コマンドを登録できることを確認する。
     test('activates and registers its commands', async () => {
@@ -19,6 +63,29 @@ suite('Extension Test Suite', () => {
         const commands = await vscode.commands.getCommands(true);
         assert.ok(commands.includes('tjs.updateCtags'));
         assert.ok(commands.includes('tjs.openReferencePallet'));
+    });
+
+    // .tjsの言語登録と、言語設定に定義されたregion折りたたみの通常動作を確認する。
+    test('recognizes TJS documents and provides region folding ranges', async () => {
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The test workspace was not opened');
+        const fixtureDocument = await vscode.workspace.openTextDocument(
+            vscode.Uri.joinPath(folder.uri, 'example.tjs'),
+        );
+
+        assert.equal(fixtureDocument.languageId, 'tjs');
+
+        const foldingDocument = await vscode.workspace.openTextDocument({
+            language: fixtureDocument.languageId,
+            content: '//#region Example\nvar value = 1;\n//#endregion\n',
+        });
+        const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+            'vscode.executeFoldingRangeProvider',
+            foldingDocument.uri,
+        );
+        const region = foldingRanges?.find(range => range.start === 0 && range.end === 2);
+
+        assert.ok(region, 'A region folding range was not provided');
     });
 
     // 実際の更新経路でシェル非使用・引数のリテラル性・タグファイルの原子的置換をまとめて検証する。
@@ -36,41 +103,14 @@ suite('Extension Test Suite', () => {
         let spawnedArguments: readonly string[] | undefined;
         let spawnedOptions: import('node:child_process').SpawnOptions | undefined;
 
-        const fakeSpawn = ((
-            command: string,
-            args: readonly string[],
-            options: import('node:child_process').SpawnOptions,
-        ) => {
+        const fakeSpawn = createSuccessfulFakeSpawn(async ({ command, args, options }) => {
             spawnedCommand = command;
             spawnedArguments = args;
             spawnedOptions = options;
 
-            const child = new EventEmitter() as EventEmitter & {
-                stdin: PassThrough;
-                stdout: PassThrough;
-                stderr: PassThrough;
-            };
-            child.stdin = new PassThrough();
-            child.stdout = new PassThrough();
-            child.stderr = new PassThrough();
-
-            queueMicrotask(() => {
-                const outputOptionIndex = args.indexOf('-f');
-                const temporaryTagFilePath = args[outputOptionIndex + 1];
-                void (async () => {
-                    // ctags完了までは既存タグを残し、生成物は指定された一時ファイルだけに書き込む。
-                    targetContentsDuringCtags = await readFile(tagFilePath, 'utf8');
-                    await writeFile(temporaryTagFilePath, 'new tags\n', 'utf8');
-                    child.stdout.end('generated tags\n');
-                    child.stderr.end('diagnostic output\n');
-                    child.emit('close', 0, null);
-                })().catch(error => {
-                    child.emit('error', error);
-                    child.emit('close', 1, null);
-                });
-            });
-            return child;
-        }) as unknown as typeof import('node:child_process').spawn;
+            // ctags完了までは既存タグを残し、生成物は指定された一時ファイルだけに書き込む。
+            targetContentsDuringCtags = await readFile(tagFilePath, 'utf8');
+        });
 
         await writeFile(tagFilePath, 'old tags\n', 'utf8');
         const provider = new CTagsSupportProvider({
@@ -99,6 +139,42 @@ suite('Extension Test Suite', () => {
             const remainingTemporaryFiles = (await readdir(folder.uri.fsPath))
                 .filter(fileName => fileName.startsWith('..test-output.tags.tjs-ctags-'));
             assert.deepEqual(remainingTemporaryFiles, []);
+        } finally {
+            provider.dispose();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // 保存されたTJS文書から、runOnSaveが有効なctagsプロセスを一度だけ実行する。
+    test('runs enabled ctags process after saving a TJS document', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const document = await vscode.workspace.openTextDocument(
+            vscode.Uri.joinPath(folder.uri, 'example.tjs'),
+        );
+        const configuration = vscode.workspace.getConfiguration('tjs', folder.uri);
+        const configuredProcesses = configuration.get<readonly { runOnSave?: boolean }[]>('ctagsProcess');
+        assert.equal(configuredProcesses?.filter(process => process.runOnSave).length, 1);
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: () => undefined,
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(() => {
+                spawnCallCount += 1;
+            }),
+        });
+
+        try {
+            await provider.onDidSaveTextDocument(document);
+
+            assert.equal(spawnCallCount, 1);
+            assert.equal(await readFile(tagFilePath, 'utf8'), 'new tags\n');
         } finally {
             provider.dispose();
             await unlink(tagFilePath).catch(() => undefined);
