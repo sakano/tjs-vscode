@@ -14,46 +14,66 @@ for (const argument of arguments_) {
 const production = arguments_.has('--production');
 const watch = arguments_.has('--watch');
 
-const problemMatcherPlugin = {
-    name: 'problem-matcher',
-    setup(build) {
-        build.onStart(() => {
-            console.log('[watch] build started');
-        });
-        build.onEnd(result => {
-            for (const error of result.errors) {
-                console.error(`✘ [ERROR] ${error.text}`);
-                if (error.location) {
-                    console.error(`    ${error.location.file}:${error.location.line}:${error.location.column}:`);
+function createProblemMatcherPlugin(label) {
+    return {
+        name: `problem-matcher-${label}`,
+        setup(build) {
+            build.onStart(() => {
+                console.log(`[watch:${label}] build started`);
+            });
+            build.onEnd(result => {
+                for (const error of result.errors) {
+                    console.error(`✘ [ERROR] ${error.text}`);
+                    if (error.location) {
+                        console.error(`    ${error.location.file}:${error.location.line}:${error.location.column}:`);
+                    }
                 }
-            }
-            console.log('[watch] build finished');
-        });
-    }
-};
+                console.log(`[watch:${label}] build finished`);
+            });
+        },
+    };
+}
 
-const context = await esbuild.context({
+const commonOptions = {
     absWorkingDir: root,
-    entryPoints: ['src/extension.ts'],
     bundle: true,
     external: ['vscode'],
     format: 'cjs',
     logLevel: 'silent',
     minify: production,
-    outfile: join(root, 'dist/extension.js'),
-    platform: 'node',
-    plugins: [problemMatcherPlugin],
     sourcemap: production ? false : true,
     sourcesContent: false,
-    target: 'node24.15'
-});
+};
+
+const contexts = await Promise.all([
+    esbuild.context({
+        ...commonOptions,
+        entryPoints: ['src/extension.ts'],
+        outfile: join(root, 'dist/extension.js'),
+        platform: 'node',
+        plugins: [createProblemMatcherPlugin('node')],
+        target: 'node24.15',
+    }),
+    esbuild.context({
+        ...commonOptions,
+        entryPoints: [
+            'src/web/extension.ts',
+            'src/web/test/suite/index.ts',
+        ],
+        outbase: join(root, 'src/web'),
+        outdir: join(root, 'dist/web'),
+        platform: 'browser',
+        plugins: [createProblemMatcherPlugin('web')],
+        target: 'es2022',
+    }),
+]);
 
 if (watch) {
-    await context.watch();
+    await Promise.all(contexts.map(context => context.watch()));
 } else {
     try {
-        await context.rebuild();
+        await Promise.all(contexts.map(context => context.rebuild()));
     } finally {
-        await context.dispose();
+        await Promise.all(contexts.map(context => context.dispose()));
     }
 }

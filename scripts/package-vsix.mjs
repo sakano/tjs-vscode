@@ -20,6 +20,7 @@ const expectedFiles = [
     'README-ja.md',
     'README.md',
     'dist/extension.js',
+    'dist/web/extension.js',
     'images/tjsicon.png',
     'language-configuration.json',
     'package.json',

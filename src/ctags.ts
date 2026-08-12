@@ -604,6 +604,13 @@ export class CTagsSupportProvider implements vscode.Disposable {
             }
             return;
         }
+        if (!this.isSupportedWorkspaceFolder(targetFolder)) {
+            this.outputChannel.appendLine(`[workspace] Ctags execution was blocked for unsupported URI scheme ${JSON.stringify(targetFolder.uri.scheme)}.`);
+            if (!save) {
+                this.notifyError('Ctags requires a local or VS Code Remote workspace folder.');
+            }
+            return;
+        }
 
         const configuration = vscode.workspace.getConfiguration('tjs', targetFolder.uri);
         const parsedConfiguration = parseCtagsProcesses(configuration.get<unknown>('ctagsProcess'));

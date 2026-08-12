@@ -1,21 +1,20 @@
 'use strict';
-import { ExtensionContext } from 'vscode';
-import * as vscode from 'vscode';
-import { ReferenceProvider } from './reference';
-import { CTagsSupportProvider } from './ctags';
-import { ColorProvider } from './colorProvider';
 
-export function activate(ctx: ExtensionContext): void {
-    const referenceProvider = new ReferenceProvider();
-    ctx.subscriptions.push(vscode.commands.registerCommand("tjs.openReferencePallet", () => referenceProvider.openPallet()));
-    ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => referenceProvider.onDidChangeConfiguration()));
+import * as vscode from 'vscode';
+
+import { activateCommon } from './commonExtension';
+import { CTagsSupportProvider } from './ctags';
+
+export function activate(context: vscode.ExtensionContext): void {
+    activateCommon(context);
 
     const ctagsSupportProvider = new CTagsSupportProvider();
-    ctx.subscriptions.push(ctagsSupportProvider);
-    ctx.subscriptions.push(vscode.commands.registerCommand("tjs.updateCtags", () => ctagsSupportProvider.updateCtags()));
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
+    context.subscriptions.push(ctagsSupportProvider);
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'tjs.updateCtags',
+        () => ctagsSupportProvider.updateCtags(),
+    ));
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
         void ctagsSupportProvider.onDidSaveTextDocument(document);
     }));
-
-    ctx.subscriptions.push(vscode.languages.registerColorProvider({ language: "tjs" }, new ColorProvider()));
 }

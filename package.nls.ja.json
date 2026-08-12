@@ -1,6 +1,7 @@
 {
   "tjs.description": "Visual Studio CodeにTJSファイルの機能を追加します",
   "tjs.untrustedWorkspaces.description": "シンタックスハイライト、色、スニペット、リファレンス検索は利用できます。ワークスペース設定を使って外部プロセスを起動するため、Ctagsの実行は無効になります。",
+  "tjs.virtualWorkspaces.description": "シンタックスハイライト、色、スニペット、リファレンス検索は利用できます。Virtual Workspaceのファイルは外部プロセスから利用できないため、Ctagsの実行は無効になります。",
   "tjs.updateCtags.title": "Ctagsのインデックスファイルを更新",
   "tjs.openReferencePallet.title": "リファレンス検索パレットを開く",
   "tjs.configuration.title": "TJSの設定",

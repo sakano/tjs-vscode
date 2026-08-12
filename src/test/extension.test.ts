@@ -130,6 +130,35 @@ suite('Extension Test Suite', () => {
         }
     });
 
+    // コマンドのenablementを迂回されても、Virtual WorkspaceのURIをNode.jsのfsへ渡さない。
+    test('blocks ctags execution for a virtual workspace folder', async () => {
+        let spawnWasCalled = false;
+        const logLines: string[] = [];
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: (line: string) => logLines.push(line),
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: (() => {
+                spawnWasCalled = true;
+                throw new Error('spawn must not be called for a virtual workspace');
+            }) as typeof import('node:child_process').spawn,
+            isWorkspaceTrusted: () => true,
+        });
+        const virtualFolder: vscode.WorkspaceFolder = {
+            index: 0,
+            name: 'virtual',
+            uri: vscode.Uri.parse('vscode-vfs://github/example/repository'),
+        };
+
+        try {
+            await provider.updateCtags(true, virtualFolder);
+            assert.equal(spawnWasCalled, false);
+            assert.ok(logLines.some(line => line.includes('unsupported URI scheme')));
+        } finally {
+            provider.dispose();
+        }
+    });
+
     // 未信頼ワークスペースのsettings.jsonから危険なctags設定が拡張機能へ渡らないことを確認する。
     test('hides restricted workspace ctags settings from the extension', function () {
         if (vscode.workspace.isTrusted) {

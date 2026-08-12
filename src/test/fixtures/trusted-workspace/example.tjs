@@ -1,2 +1,3 @@
 class TrustedWorkspaceFixture {
+    var accentColor = 0x80FF0000;
 }

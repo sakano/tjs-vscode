@@ -13,6 +13,13 @@ Adds TJS language support for Visual Studio Code. If you needs KAG/KAGEX support
 - The Reference search pallet to open API references
 
 
+# Supported environments
+
+Syntax highlighting, language configuration, snippets, document colors, and reference search are available in local, remote, Virtual Workspace, and VS Code for the Web environments.
+
+Ctags requires a trusted workspace whose files are accessible to an external process. It is unavailable in Virtual Workspaces such as GitHub Repositories and in browser-only environments such as vscode.dev and github.dev. When using Remote SSH, WSL, a Dev Container, Codespaces, or a Remote Tunnel, install ctags on the remote side.
+
+
 # Reference search palette
 You can open API references with your browser by following the steps
 1. Push Ctrl+Shift+P to open the Command Pallet.

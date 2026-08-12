@@ -8,6 +8,7 @@
     "icon": "images/tjsicon.png",
     "files": [
         "dist/extension.js",
+        "dist/web/extension.js",
         "images/tjsicon.png",
         "language-configuration.json",
         "syntaxes/tjs.tmLanguage.json",
@@ -46,6 +47,10 @@
             "restrictedConfigurations": [
                 "tjs.ctagsProcess"
             ]
+        },
+        "virtualWorkspaces": {
+            "supported": "limited",
+            "description": "%tjs.virtualWorkspaces.description%"
         }
     },
     "repository": {
@@ -94,7 +99,7 @@
                 "command": "tjs.updateCtags",
                 "title": "%tjs.updateCtags.title%",
                 "category": "TJS",
-                "enablement": "isWorkspaceTrusted"
+                "enablement": "isWorkspaceTrusted && !virtualWorkspace && shellExecutionSupported && workspaceFolderCount > 0"
             },
             {
                 "command": "tjs.openReferencePallet",
@@ -102,6 +107,14 @@
                 "category": "TJS"
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "tjs.updateCtags",
+                    "when": "!virtualWorkspace && shellExecutionSupported && workspaceFolderCount > 0"
+                }
+            ]
+        },
         "keybindings": [
             {
                 "command": "tjs.openReferencePallet",
@@ -253,7 +266,9 @@
         "package": "node ./scripts/run-scripts.mjs clean check-types bundle:production",
         "vscode:prepublish": "npm run package",
         "pretest": "node ./scripts/run-scripts.mjs clean check-types bundle compile-tests",
-        "test": "vscode-test && node ./scripts/run-untrusted-tests.mjs",
+        "test": "node ./scripts/run-scripts.mjs test:desktop test:web",
+        "test:desktop": "vscode-test && node ./scripts/run-untrusted-tests.mjs",
+        "test:web": "vscode-test-web --browserType=chromium --quality=stable --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js src/test/fixtures/trusted-workspace",
         "vsix:list": "vsce ls --tree --no-dependencies",
         "vsix:ls": "node ./scripts/run-scripts.mjs package vsix:list",
         "vsix": "node ./scripts/package-vsix.mjs",
@@ -267,9 +282,11 @@
         "@typescript-eslint/parser": "^8.67.0",
         "@vscode/test-cli": "^0.0.15",
         "@vscode/test-electron": "^3.1.0",
+        "@vscode/test-web": "^0.0.81",
         "@vscode/vsce": "3.9.2",
         "esbuild": "0.28.1",
         "eslint": "^10.8.1",
+        "mocha": "^11.8.0",
         "typescript": "^6.0.3"
     },
     "overrides": {
@@ -279,13 +296,16 @@
         }
     },
     "allowScripts": {
+        "@playwright/browser-chromium@1.62.1": true,
         "@vscode/vsce-sign@2.0.9": true,
         "esbuild@0.28.1": true,
+        "fsevents@2.3.2": false,
         "keytar": false
     },
     "vsce": {
         "dependencies": false,
         "githubBranch": "master"
     },
-    "main": "./dist/extension.js"
+    "main": "./dist/extension.js",
+    "browser": "./dist/web/extension.js"
 }
