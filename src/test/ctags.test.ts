@@ -4,6 +4,7 @@ import {
     buildCtagsArguments,
     createCtagsSpawnOptions,
     isPathInside,
+    isValidCtagsLine,
     parseCtagsProcesses,
     parseRunOnSaveLanguages,
     resolveWorkspaceRelativePath,
@@ -104,6 +105,34 @@ suite('Ctags configuration', () => {
 });
 
 suite('Ctags paths and invocation', () => {
+    // ctags本体と同じ先頭行判定で、疑似タグ・通常タグ・数値アドレスを受け入れる。
+    test('recognizes the first line of Ctags files', () => {
+        for (const line of [
+            '!_TAG_FILE_FORMAT\t2\t/extended format/',
+            'functionName\tsrc/example.tjs\t/^function functionName/;"\tf',
+            'lineTag\tsrc/example.tjs\t42',
+            'lineTag\tsrc/example.tjs\t42;"\tv',
+            'backwardTag\tsrc/example.tjs\t?^var backwardTag?;"\tv',
+        ]) {
+            assert.equal(isValidCtagsLine(line), true, line);
+        }
+    });
+
+    // 通常テキストや、ctagsの構文条件を一部だけ満たす行をタグファイルと誤認しない。
+    test('rejects lines that Ctags would not accept as tag lines', () => {
+        for (const line of [
+            '{"name":"package"}',
+            'plain text',
+            '#tag\tsrc/example.tjs\t/^var tag/',
+            'tag\t\t/^var tag/',
+            'tag\tsrc/example.tjs;\t/^var tag/',
+            'tag\tsrc/example.tjs\tnot-a-line-number',
+            'tag\tsrc/example.tjs\t',
+        ]) {
+            assert.equal(isValidCtagsLine(line), false, line);
+        }
+    });
+
     // 単純な文字列前方一致による別ディレクトリや別ドライブの誤判定を防ぐ。
     test('checks POSIX and Windows containment without prefix confusion', () => {
         assert.equal(isPathInside('/workspace', '/workspace/src', path.posix), true);

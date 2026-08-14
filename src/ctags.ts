@@ -8,6 +8,7 @@ import {
 } from 'node:child_process';
 import {
     lstat,
+    open,
     readdir,
     realpath,
     rename,
@@ -461,10 +462,65 @@ function isErrnoException(error: unknown, code: string): boolean {
 }
 
 /**
- * 既存のタグ出力先が、置換可能な通常ファイルであることを確認します。
- * 出力先がまだ存在しない場合は許可します。
+ * ctagsが有効なCtags形式の先頭行とみなすかを判定します。
+ * `!_TAG_`疑似タグと通常のタグ行は同じ構文として扱われます。
  */
-async function assertRegularOutputTarget(tagFilePath: string, settingPath: string): Promise<void> {
+export function isValidCtagsLine(rawLine: string): boolean {
+    const nulIndex = rawLine.indexOf('\0');
+    const line = nulIndex < 0 ? rawLine : rawLine.slice(0, nulIndex);
+    const firstTab = line.indexOf('\t');
+    const secondTab = firstTab < 0 ? -1 : line.indexOf('\t', firstTab + 1);
+
+    if (firstTab <= 0 || secondTab <= firstTab + 1) {
+        return false;
+    }
+
+    const tagName = line.slice(0, firstTab);
+    const sourceFile = line.slice(firstTab + 1, secondTab);
+    const address = line.slice(secondTab + 1);
+    if (tagName.startsWith('#') || sourceFile.endsWith(';') || address.length === 0) {
+        return false;
+    }
+    if (address.startsWith('/') || address.startsWith('?')) {
+        return true;
+    }
+
+    const extensionSeparator = address.indexOf(';');
+    const lineNumber = extensionSeparator < 0 ? address : address.slice(0, extensionSeparator);
+    return /^[0-9]+$/u.test(lineNumber);
+}
+
+async function fileHasValidTagFilePrefix(tagFilePath: string): Promise<boolean> {
+    const file = await open(tagFilePath, 'r');
+    const firstBytes = Buffer.alloc(2);
+
+    try {
+        const { bytesRead } = await file.read(firstBytes, 0, firstBytes.length, 0);
+        if (bytesRead === 0) {
+            return true;
+        }
+        if (
+            bytesRead === 2
+            && firstBytes[0] === 0x0c
+            && (firstBytes[1] === 0x0a || firstBytes[1] === 0x0d)
+        ) {
+            return true;
+        }
+
+        for await (const line of file.readLines({ encoding: 'latin1' })) {
+            return isValidCtagsLine(line);
+        }
+        return false;
+    } finally {
+        await file.close();
+    }
+}
+
+/**
+ * 既存のタグ出力先が、ctags自身が上書きを許可するファイルであることを確認します。
+ * 出力先が存在しない場合、空ファイル、Ctags形式、Etags形式を許可します。
+ */
+async function assertReplaceableTagFile(tagFilePath: string, settingPath: string): Promise<void> {
     try {
         const targetStats = await lstat(tagFilePath);
         if (targetStats.isSymbolicLink()) {
@@ -472,6 +528,9 @@ async function assertRegularOutputTarget(tagFilePath: string, settingPath: strin
         }
         if (!targetStats.isFile()) {
             throw new Error(`${settingPath} must refer to a regular file.`);
+        }
+        if (!await fileHasValidTagFilePrefix(tagFilePath)) {
+            throw new Error(`${settingPath} does not look like a tag file; refusing to overwrite it.`);
         }
     } catch (error) {
         if (!isErrnoException(error, 'ENOENT')) {
@@ -537,7 +596,7 @@ async function preparePaths(
     if (!tagDirectoryStats.isDirectory()) {
         throw new Error(`${tagSettingPath} parent must be a directory.`);
     }
-    await assertRegularOutputTarget(tagFilePath, tagSettingPath);
+    await assertReplaceableTagFile(tagFilePath, tagSettingPath);
 
     return {
         workspaceRoot,
@@ -804,6 +863,10 @@ export class CTagsSupportProvider implements vscode.Disposable {
             if (!temporaryFileStats.isFile() || temporaryFileStats.isSymbolicLink()) {
                 throw new Error('ctags did not create a regular tag file.');
             }
+            await assertReplaceableTagFile(
+                paths.tagFilePath,
+                `tjs.ctagsProcess[${processIndex}].tagFilePath`,
+            );
             await rename(paths.temporaryTagFilePath, paths.tagFilePath);
             temporaryFileWasPromoted = true;
             this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] Updated ${paths.tagFilePath}`);

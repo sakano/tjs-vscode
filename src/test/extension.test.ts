@@ -12,6 +12,18 @@ interface FakeSpawnInvocation {
     options: import('node:child_process').SpawnOptions;
 }
 
+const OLD_TAGS = [
+    '!_TAG_FILE_FORMAT\t2\t/extended format/',
+    'oldTag\texample.tjs\t/^var oldTag/;"\tv',
+    '',
+].join('\n');
+
+const NEW_TAGS = [
+    '!_TAG_FILE_FORMAT\t2\t/extended format/',
+    'newTag\texample.tjs\t/^var newTag/;"\tv',
+    '',
+].join('\n');
+
 function createSuccessfulFakeSpawn(
     onInvocation?: (invocation: FakeSpawnInvocation) => void | Promise<void>,
 ): typeof import('node:child_process').spawn {
@@ -37,7 +49,7 @@ function createSuccessfulFakeSpawn(
                 if (outputOptionIndex < 0 || temporaryTagFilePath === undefined) {
                     throw new Error('ctags output path was not provided');
                 }
-                await writeFile(temporaryTagFilePath, 'new tags\n', 'utf8');
+                await writeFile(temporaryTagFilePath, NEW_TAGS, 'utf8');
                 child.stdout.end('generated tags\n');
                 child.stderr.end('diagnostic output\n');
                 child.emit('close', 0, null);
@@ -112,7 +124,7 @@ suite('Extension Test Suite', () => {
             targetContentsDuringCtags = await readFile(tagFilePath, 'utf8');
         });
 
-        await writeFile(tagFilePath, 'old tags\n', 'utf8');
+        await writeFile(tagFilePath, OLD_TAGS, 'utf8');
         const provider = new CTagsSupportProvider({
             outputChannel: {
                 appendLine: (line: string) => logLines.push(line),
@@ -130,8 +142,8 @@ suite('Extension Test Suite', () => {
             assert.ok(spawnedArguments?.includes('--exclude=folder;literal'));
 
             // 成功後にだけ新しいタグへ切り替わり、標準出力・標準エラーも診断ログに残ることを確認する。
-            assert.equal(targetContentsDuringCtags, 'old tags\n');
-            assert.equal(await readFile(tagFilePath, 'utf8'), 'new tags\n');
+            assert.equal(targetContentsDuringCtags, OLD_TAGS);
+            assert.equal(await readFile(tagFilePath, 'utf8'), NEW_TAGS);
             assert.ok(logLines.some(line => line.includes('stdout: generated tags')));
             assert.ok(logLines.some(line => line.includes('stderr: diagnostic output')));
 
@@ -139,6 +151,110 @@ suite('Extension Test Suite', () => {
             const remainingTemporaryFiles = (await readdir(folder.uri.fsPath))
                 .filter(fileName => fileName.startsWith('..test-output.tags.tjs-ctags-'));
             assert.deepEqual(remainingTemporaryFiles, []);
+        } finally {
+            provider.dispose();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // tagFilePathの誤設定で既存の通常ファイルを指定しても、ctagsを起動せず内容を保持する。
+    test('refuses to overwrite an existing non-tag file', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const originalContents = '{"name":"must-survive"}\n';
+        const logLines: string[] = [];
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: (line: string) => logLines.push(line),
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(() => {
+                spawnCallCount++;
+            }),
+        });
+
+        await writeFile(tagFilePath, originalContents, 'utf8');
+        try {
+            await provider.updateCtags(true, folder);
+
+            assert.equal(spawnCallCount, 0);
+            assert.equal(await readFile(tagFilePath, 'utf8'), originalContents);
+            assert.ok(logLines.some(line => line.includes('does not look like a tag file')));
+        } finally {
+            provider.dispose();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // ctags実行中に出力先が非タグファイルへ変わった場合、生成済み一時ファイルを昇格させない。
+    test('rechecks the target before promoting generated tags', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const replacementContents = '{"changed":"while-ctags-ran"}\n';
+        const logLines: string[] = [];
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: (line: string) => logLines.push(line),
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(async () => {
+                spawnCallCount++;
+                await writeFile(tagFilePath, replacementContents, 'utf8');
+            }),
+        });
+
+        await writeFile(tagFilePath, OLD_TAGS, 'utf8');
+        try {
+            await provider.updateCtags(true, folder);
+
+            assert.equal(spawnCallCount, 1);
+            assert.equal(await readFile(tagFilePath, 'utf8'), replacementContents);
+            assert.ok(logLines.some(line => line.includes('does not look like a tag file')));
+            const remainingTemporaryFiles = (await readdir(folder.uri.fsPath))
+                .filter(fileName => fileName.startsWith('..test-output.tags.tjs-ctags-'));
+            assert.deepEqual(remainingTemporaryFiles, []);
+        } finally {
+            provider.dispose();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // ctags本体と同じく、0バイトファイルとEtagsファイルは既存出力先として許可する。
+    test('accepts empty and Etags output targets', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: () => undefined,
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(() => {
+                spawnCallCount++;
+            }),
+        });
+
+        try {
+            for (const existingContents of ['', '\f\n']) {
+                await writeFile(tagFilePath, existingContents, 'latin1');
+                await provider.updateCtags(true, folder);
+                assert.equal(await readFile(tagFilePath, 'utf8'), NEW_TAGS);
+            }
+            assert.equal(spawnCallCount, 2);
         } finally {
             provider.dispose();
             await unlink(tagFilePath).catch(() => undefined);
@@ -174,7 +290,7 @@ suite('Extension Test Suite', () => {
             await provider.onDidSaveTextDocument(document);
 
             assert.equal(spawnCallCount, 1);
-            assert.equal(await readFile(tagFilePath, 'utf8'), 'new tags\n');
+            assert.equal(await readFile(tagFilePath, 'utf8'), NEW_TAGS);
         } finally {
             provider.dispose();
             await unlink(tagFilePath).catch(() => undefined);
