@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to the "tjs-vscode" extension will be documented in this file.
 
+## [1.3.0]
+- Support syntax highlighting, snippets, document colors, and reference search in VS Code for the Web and Virtual Workspaces
+- Disable Ctags execution in untrusted workspaces
+- Add the `extraArgs` and `timeoutMs` Ctags settings and deprecate `extraOption`
+- Fix an issue where Kirikiri Z reference search was not enabled by default
+- Require Visual Studio Code 1.125 or later
+
 ## [1.2.1]
 - Remove unnecessary files
 
