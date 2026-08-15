@@ -1,8 +1,8 @@
 import { defineConfig } from '@vscode/test-cli';
 
 const trustedTestFiles = [
-    'out/test/coalescingTaskQueue.test.js',
     'out/test/ctags.test.js',
+    'out/test/debouncedTaskQueue.test.js',
     'out/test/extension.test.js',
     'out/test/providers.test.js',
 ];

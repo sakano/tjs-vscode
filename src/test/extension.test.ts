@@ -200,8 +200,8 @@ suite('Extension Test Suite', () => {
         }
     });
 
-    // 同じタグへの連続更新は同時実行せず、実行待ちの同一設定を最新の一回へ集約する。
-    test('serializes and coalesces overlapping updates for one tag file', async () => {
+    // 同じ設定への連続更新を同時実行せず、実行待ちの要求を最新の一回へ集約する。
+    test('serializes and debounces overlapping updates for one ctags setting', async () => {
         const folder = getTestWorkspaceFolder(true);
         const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
         const firstStarted = createDeferred();
@@ -240,8 +240,8 @@ suite('Extension Test Suite', () => {
         }
     });
 
-    // provider破棄後は、同じタグへの実行待ち要求から新しいctagsを起動しない。
-    test('cancels a queued update when the provider is disposed', async () => {
+    // provider破棄後は、同じ設定への実行待ち要求から新しいctagsを起動しない。
+    test('cancels a debounced update when the provider is disposed', async () => {
         const folder = getTestWorkspaceFolder(true);
         const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
         const firstStarted = createDeferred();
@@ -261,12 +261,12 @@ suite('Extension Test Suite', () => {
         await cleanupTagOutput(tagFilePath);
         try {
             const running = provider.updateCtags(true, folder);
-            const queued = provider.updateCtags(true, folder);
+            const pending = provider.updateCtags(true, folder);
 
             await firstStarted.promise;
             provider.dispose();
             releaseFirst.resolve();
-            await Promise.all([running, queued]);
+            await Promise.all([running, pending]);
 
             assert.equal(spawnCallCount, 1);
         } finally {

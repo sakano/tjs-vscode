@@ -1,14 +1,13 @@
 import type { spawn } from 'node:child_process';
 import * as vscode from 'vscode';
 
-import { CoalescingTaskQueue } from '../coalescingTaskQueue';
+import { DebouncedTaskQueue } from '../debouncedTaskQueue';
 import {
     parseCtagsProcesses,
     parseRunOnSaveLanguages,
     type ConfigurationDiagnostic,
     type CtagsProcessConfiguration,
 } from './configuration';
-import { resolveCtagsPaths } from './paths';
 import {
     CtagsExecutionCancelledError,
     CtagsProcessExecutor,
@@ -25,8 +24,8 @@ export class CTagsSupportProvider implements vscode.Disposable {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly ownsOutputChannel: boolean;
     private readonly isWorkspaceTrusted: () => boolean;
-    private readonly executionQueue = new CoalescingTaskQueue();
     private readonly processExecutor: CtagsProcessExecutor;
+    private readonly executionQueue = new DebouncedTaskQueue();
     private disposed = false;
 
     public constructor(options: CTagsSupportProviderOptions = {}) {
@@ -196,19 +195,14 @@ export class CTagsSupportProvider implements vscode.Disposable {
         });
     }
 
-    /** 同じタグ出力先に対する実行を直列化し、同じ待機中の設定を最新版へ集約します。 */
+    /** 同じワークスペースの同じ設定を直列化し、実行待ちの要求を最新の一回へ集約します。 */
     private scheduleProcess(
         folder: vscode.WorkspaceFolder,
         configuration: CtagsProcessConfiguration,
         processIndex: number,
     ): Promise<void> {
-        const paths = resolveCtagsPaths(folder, configuration, processIndex);
-        const resourceKey = process.platform === 'win32'
-            ? paths.tagFilePath.toLowerCase()
-            : paths.tagFilePath;
-        const taskKey = `${folder.uri.toString()}\0${processIndex}`;
-
-        return this.executionQueue.enqueue(resourceKey, taskKey, async () => {
+        const configurationKey = `${folder.uri.toString()}\0${processIndex}`;
+        return this.executionQueue.enqueue(configurationKey, async () => {
             if (this.disposed) {
                 throw new CtagsExecutionCancelledError();
             }
