@@ -21,6 +21,7 @@ import * as vscode from 'vscode';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_TIMEOUT_MS = 2_147_483_647;
+const FORCED_TERMINATION_WAIT_MS = 2_000;
 const DEFAULT_RUN_ON_SAVE_LANGUAGES = ['tjs'] as const;
 
 const TJS_REGEX_ARGS = [
@@ -438,11 +439,113 @@ export function buildCtagsArguments(
 export function createCtagsSpawnOptions(cwd: string, signal: AbortSignal): SpawnOptions {
     return {
         cwd,
+        killSignal: 'SIGKILL',
         shell: false,
         signal,
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
     };
+}
+
+/** ctagsプロセスの終了結果。 */
+export type CtagsProcessCompletion = {
+    closed: boolean;
+    exitCode: number | null;
+    signal: NodeJS.Signals | null;
+    processError?: Error;
+    inputError?: Error;
+    stopReason?: 'timeout' | 'cancelled';
+};
+
+const ignoreLateStreamError = (): void => undefined;
+
+/**
+ * ctagsの終了を待ち、timeoutまたは外部キャンセル後も`close`が来なければ待機を打ち切ります。
+ *
+ * AbortSignalによる停止にはspawn optionの`SIGKILL`が使用されます。強制終了要求自体が
+ * 失敗した場合でもextension hostにPromiseを永久残留させないため、終了確認には別の上限を設けます。
+ */
+export function waitForCtagsProcess(
+    child: ChildProcessWithoutNullStreams,
+    controller: AbortController,
+    timeoutMs: number,
+    forcedTerminationWaitMs = FORCED_TERMINATION_WAIT_MS,
+): Promise<CtagsProcessCompletion> {
+    return new Promise(resolve => {
+        let settled = false;
+        let processError: Error | undefined;
+        let inputError: Error | undefined;
+        let stopReason: CtagsProcessCompletion['stopReason'];
+        let timeout: NodeJS.Timeout | undefined;
+        let forcedTerminationTimeout: NodeJS.Timeout | undefined;
+
+        const finish = (
+            closed: boolean,
+            exitCode: number | null,
+            signal: NodeJS.Signals | null,
+        ): void => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            if (timeout !== undefined) {
+                clearTimeout(timeout);
+            }
+            if (forcedTerminationTimeout !== undefined) {
+                clearTimeout(forcedTerminationTimeout);
+            }
+            controller.signal.removeEventListener('abort', onAbort);
+            child.removeListener('error', onProcessError);
+            child.stdin.removeListener('error', onInputError);
+            child.removeListener('close', onClose);
+
+            // 終了未確認のプロセスから遅れてerrorが届いても、extension hostの
+            // uncaught exceptionにしない。呼び出し側は直後にstdioを破棄する。
+            if (!closed) {
+                child.on('error', ignoreLateStreamError);
+                child.stdin.on('error', ignoreLateStreamError);
+            }
+
+            resolve({
+                closed,
+                exitCode,
+                signal,
+                processError,
+                inputError,
+                stopReason,
+            });
+        };
+
+        const onProcessError = (error: Error): void => {
+            processError ??= error;
+        };
+        const onInputError = (error: Error): void => {
+            inputError ??= error;
+        };
+        const onClose = (exitCode: number | null, signal: NodeJS.Signals | null): void => {
+            finish(true, exitCode, signal);
+        };
+        const onAbort = (): void => {
+            stopReason ??= 'cancelled';
+            forcedTerminationTimeout ??= setTimeout(() => {
+                finish(false, null, null);
+            }, forcedTerminationWaitMs);
+        };
+
+        child.on('error', onProcessError);
+        child.stdin.on('error', onInputError);
+        child.once('close', onClose);
+        controller.signal.addEventListener('abort', onAbort, { once: true });
+
+        if (controller.signal.aborted) {
+            onAbort();
+        } else if (timeoutMs > 0) {
+            timeout = setTimeout(() => {
+                stopReason ??= 'timeout';
+                controller.abort();
+            }, timeoutMs);
+        }
+    });
 }
 
 function isErrnoException(error: unknown, code: string): boolean {
@@ -548,6 +651,11 @@ type PreparedPaths = {
     tagFilePath: string;
     temporaryTagFilePath: string;
     searchPath: string;
+};
+
+type OutputForwarder = {
+    flush(): void;
+    dispose(): void;
 };
 
 /**
@@ -785,8 +893,6 @@ export class CTagsSupportProvider implements vscode.Disposable {
         );
         const controller = new AbortController();
         this.controllers.add(controller);
-        let timedOut = false;
-        let timeout: NodeJS.Timeout | undefined;
         let temporaryFileWasPromoted = false;
 
         this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] cwd=${JSON.stringify(paths.workspaceRoot)}`);
@@ -798,70 +904,58 @@ export class CTagsSupportProvider implements vscode.Disposable {
                 argumentsList,
                 createCtagsSpawnOptions(paths.workspaceRoot, controller.signal),
             ) as ChildProcessWithoutNullStreams;
-            const flushStdout = this.pipeToOutput(child.stdout, `[ctagsProcess:${processIndex}] stdout`);
-            const flushStderr = this.pipeToOutput(child.stderr, `[ctagsProcess:${processIndex}] stderr`);
+            const stdoutForwarder = this.pipeToOutput(child.stdout, `[ctagsProcess:${processIndex}] stdout`);
+            const stderrForwarder = this.pipeToOutput(child.stderr, `[ctagsProcess:${processIndex}] stderr`);
 
-            const completion = new Promise<void>((resolve, reject) => {
-                let processError: Error | undefined;
-                let inputError: Error | undefined;
+            try {
+                const completion = waitForCtagsProcess(child, controller, configuration.timeoutMs);
 
-                child.once('error', error => {
-                    processError = error;
-                });
-                child.stdin.once('error', error => {
-                    inputError = error;
-                });
-                child.once('close', (exitCode, signal) => {
-                    flushStdout();
-                    flushStderr();
-                    if (timedOut) {
-                        reject(new Error(`ctags timed out after ${configuration.timeoutMs} ms.`));
-                    } else if (controller.signal.aborted) {
-                        reject(new Error('ctags was cancelled.'));
-                    } else if (processError !== undefined) {
-                        reject(new Error(`Unable to start ctags: ${processError.message}`));
-                    } else if (inputError !== undefined && exitCode === 0) {
-                        reject(new Error(`Unable to send the file list to ctags: ${inputError.message}`));
-                    } else if (exitCode !== 0) {
-                        reject(new Error(`ctags exited with code ${String(exitCode)}${signal === null ? '' : ` (${signal})`}.`));
-                    } else {
-                        resolve();
-                    }
-                });
-            });
+                if (configuration.searchRecursive) {
+                    child.stdin.end();
+                } else {
+                    const fileList = nonRecursiveInputFiles.length === 0
+                        ? ''
+                        : `${nonRecursiveInputFiles.join('\n')}\n`;
+                    child.stdin.end(fileList, 'utf8');
+                }
 
-            if (configuration.timeoutMs > 0) {
-                timeout = setTimeout(() => {
-                    timedOut = true;
-                    controller.abort();
-                }, configuration.timeoutMs);
+                const result = await completion;
+                stdoutForwarder.flush();
+                stderrForwarder.flush();
+                if (result.stopReason === 'timeout') {
+                    throw new Error(`ctags timed out after ${configuration.timeoutMs} ms.`);
+                }
+                if (result.stopReason === 'cancelled') {
+                    throw new Error('ctags was cancelled.');
+                }
+                if (result.processError !== undefined) {
+                    throw new Error(`Unable to start ctags: ${result.processError.message}`);
+                }
+                if (result.inputError !== undefined && result.exitCode === 0) {
+                    throw new Error(`Unable to send the file list to ctags: ${result.inputError.message}`);
+                }
+                if (result.exitCode !== 0) {
+                    throw new Error(`ctags exited with code ${String(result.exitCode)}${result.signal === null ? '' : ` (${result.signal})`}.`);
+                }
+                const temporaryFileStats = await lstat(paths.temporaryTagFilePath);
+                if (!temporaryFileStats.isFile() || temporaryFileStats.isSymbolicLink()) {
+                    throw new Error('ctags did not create a regular tag file.');
+                }
+                await assertReplaceableTagFile(
+                    paths.tagFilePath,
+                    `tjs.ctagsProcess[${processIndex}].tagFilePath`,
+                );
+                await rename(paths.temporaryTagFilePath, paths.tagFilePath);
+                temporaryFileWasPromoted = true;
+                this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] Updated ${paths.tagFilePath}`);
+            } finally {
+                stdoutForwarder.flush();
+                stderrForwarder.flush();
+                stdoutForwarder.dispose();
+                stderrForwarder.dispose();
+                child.stdin.destroy();
             }
-
-            if (configuration.searchRecursive) {
-                child.stdin.end();
-            } else {
-                const fileList = nonRecursiveInputFiles.length === 0
-                    ? ''
-                    : `${nonRecursiveInputFiles.join('\n')}\n`;
-                child.stdin.end(fileList, 'utf8');
-            }
-
-            await completion;
-            const temporaryFileStats = await lstat(paths.temporaryTagFilePath);
-            if (!temporaryFileStats.isFile() || temporaryFileStats.isSymbolicLink()) {
-                throw new Error('ctags did not create a regular tag file.');
-            }
-            await assertReplaceableTagFile(
-                paths.tagFilePath,
-                `tjs.ctagsProcess[${processIndex}].tagFilePath`,
-            );
-            await rename(paths.temporaryTagFilePath, paths.tagFilePath);
-            temporaryFileWasPromoted = true;
-            this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] Updated ${paths.tagFilePath}`);
         } finally {
-            if (timeout !== undefined) {
-                clearTimeout(timeout);
-            }
             this.controllers.delete(controller);
             if (!temporaryFileWasPromoted) {
                 try {
@@ -878,24 +972,31 @@ export class CTagsSupportProvider implements vscode.Disposable {
     /**
      * ctagsの出力ストリームを行単位で出力チャンネルへ転送します。
      *
-     * @returns 改行で終わらなかった最後の内容を転送するフラッシュ関数。
+     * @returns 最後の内容を転送し、stream監視を解除するためのハンドル。
      */
-    private pipeToOutput(stream: Readable, prefix: string): () => void {
+    private pipeToOutput(stream: Readable, prefix: string): OutputForwarder {
         stream.setEncoding('utf8');
         let pending = '';
-        stream.on('data', (chunk: string) => {
+        const onData = (chunk: string): void => {
             pending += chunk;
             const lines = pending.split(/\r?\n/u);
             pending = lines.pop() ?? '';
             for (const line of lines) {
                 this.outputChannel.appendLine(`${prefix}: ${line}`);
             }
-        });
-        return () => {
-            if (pending.length > 0) {
-                this.outputChannel.appendLine(`${prefix}: ${pending}`);
-                pending = '';
-            }
+        };
+        stream.on('data', onData);
+        return {
+            flush: () => {
+                if (pending.length > 0) {
+                    this.outputChannel.appendLine(`${prefix}: ${pending}`);
+                    pending = '';
+                }
+            },
+            dispose: () => {
+                stream.removeListener('data', onData);
+                stream.destroy();
+            },
         };
     }
 }

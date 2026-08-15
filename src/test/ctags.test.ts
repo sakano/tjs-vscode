@@ -1,5 +1,8 @@
 import * as assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import * as path from 'node:path';
+import { PassThrough } from 'node:stream';
 import {
     buildCtagsArguments,
     createCtagsSpawnOptions,
@@ -10,6 +13,7 @@ import {
     resolveWorkspaceRelativePath,
     tokenizeLegacyExtraOption,
     validateExtraArgs,
+    waitForCtagsProcess,
     type CtagsProcessConfiguration,
 } from '../ctags';
 
@@ -22,6 +26,18 @@ const baseConfiguration: CtagsProcessConfiguration = {
     extraArgs: [],
     timeoutMs: 120_000,
 };
+
+function createFakeChildProcess(): import('node:child_process').ChildProcessWithoutNullStreams {
+    const child = new EventEmitter() as EventEmitter & {
+        stdin: PassThrough;
+        stdout: PassThrough;
+        stderr: PassThrough;
+    };
+    child.stdin = new PassThrough();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    return child as unknown as import('node:child_process').ChildProcessWithoutNullStreams;
+}
 
 suite('Ctags configuration', () => {
     // 設定が未指定でも、安全側の既定値だけで実行設定を組み立てられることを保証する。
@@ -205,8 +221,81 @@ suite('Ctags paths and invocation', () => {
         const options = createCtagsSpawnOptions('/workspace with spaces', controller.signal);
 
         assert.equal(options.cwd, '/workspace with spaces');
+        assert.equal(options.killSignal, 'SIGKILL');
         assert.equal(options.shell, false);
         assert.equal(options.windowsHide, true);
         assert.equal(options.signal, controller.signal);
+    });
+
+    // 実際のNode子プロセスでも、timeout時のAbortSignalがSIGKILLとして終了させることを確認する。
+    test('forcefully terminates a long-running process at timeout', async function () {
+        this.timeout(5_000);
+        const controller = new AbortController();
+        const child = spawn(
+            process.execPath,
+            ['-e', "process.on('SIGTERM', () => undefined); setInterval(() => undefined, 1_000);"],
+            createCtagsSpawnOptions(process.cwd(), controller.signal),
+        ) as import('node:child_process').ChildProcessWithoutNullStreams;
+        let closed = false;
+
+        try {
+            const result = await waitForCtagsProcess(child, controller, 25, 2_000);
+            closed = result.closed;
+
+            assert.equal(result.stopReason, 'timeout');
+            assert.equal(result.closed, true);
+            assert.equal(result.exitCode, null);
+            assert.equal(result.signal, 'SIGKILL');
+        } finally {
+            if (!closed) {
+                child.kill('SIGKILL');
+            }
+            child.stdin.destroy();
+            child.stdout.destroy();
+            child.stderr.destroy();
+        }
+    });
+
+    // 強制終了要求後にcloseが来ない異常プロセスでも、関連Promiseを永久残留させない。
+    test('stops waiting when a timed-out process never closes', async () => {
+        const child = createFakeChildProcess();
+        const controller = new AbortController();
+
+        const result = await waitForCtagsProcess(child, controller, 1, 1);
+
+        assert.equal(controller.signal.aborted, true);
+        assert.equal(result.closed, false);
+        assert.equal(result.stopReason, 'timeout');
+        assert.equal(result.exitCode, null);
+        assert.equal(result.signal, null);
+    });
+
+    // 強制終了後にcloseを確認できた場合は、最終待機期限を待たず終了情報を返す。
+    test('uses close received during the forced-termination wait', async () => {
+        const child = createFakeChildProcess();
+        const controller = new AbortController();
+        controller.signal.addEventListener('abort', () => {
+            queueMicrotask(() => child.emit('close', null, 'SIGKILL'));
+        }, { once: true });
+
+        const result = await waitForCtagsProcess(child, controller, 1, 1_000);
+
+        assert.equal(result.closed, true);
+        assert.equal(result.stopReason, 'timeout');
+        assert.equal(result.exitCode, null);
+        assert.equal(result.signal, 'SIGKILL');
+    });
+
+    // extensionのdisposeによる外部キャンセルにも、timeoutと同じ有限の終了待機を適用する。
+    test('bounds the wait after external cancellation', async () => {
+        const child = createFakeChildProcess();
+        const controller = new AbortController();
+        const completion = waitForCtagsProcess(child, controller, 0, 1);
+
+        controller.abort();
+        const result = await completion;
+
+        assert.equal(result.closed, false);
+        assert.equal(result.stopReason, 'cancelled');
     });
 });
