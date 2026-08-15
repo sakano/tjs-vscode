@@ -414,6 +414,7 @@ export function buildCtagsArguments(
         '--langdef=tjs',
         `--langmap=tjs:${configuration.fileExtensions.join('')}`,
         ...TJS_REGEX_ARGS,
+        '--languages=tjs',
         ...configuration.extraArgs,
         '--links=no',
         '-f',
