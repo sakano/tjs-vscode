@@ -24,8 +24,19 @@ const NEW_TAGS = [
     '',
 ].join('\n');
 
+function createDeferred(): { promise: Promise<void>; resolve(): void } {
+    let resolve: (() => void) | undefined;
+    const promise = new Promise<void>(promiseResolve => {
+        resolve = promiseResolve;
+    });
+    return {
+        promise,
+        resolve: () => resolve?.(),
+    };
+}
+
 function createSuccessfulFakeSpawn(
-    onInvocation?: (invocation: FakeSpawnInvocation) => void | Promise<void>,
+    onInvocation?: (invocation: FakeSpawnInvocation) => string | void | Promise<string | void>,
 ): typeof import('node:child_process').spawn {
     return ((
         command: string,
@@ -43,13 +54,13 @@ function createSuccessfulFakeSpawn(
 
         queueMicrotask(() => {
             void (async () => {
-                await onInvocation?.({ command, args, options });
+                const generatedTags = await onInvocation?.({ command, args, options });
                 const outputOptionIndex = args.indexOf('-f');
                 const temporaryTagFilePath = args[outputOptionIndex + 1];
                 if (outputOptionIndex < 0 || temporaryTagFilePath === undefined) {
                     throw new Error('ctags output path was not provided');
                 }
-                await writeFile(temporaryTagFilePath, NEW_TAGS, 'utf8');
+                await writeFile(temporaryTagFilePath, generatedTags ?? NEW_TAGS, 'utf8');
                 child.stdout.end('generated tags\n');
                 child.stderr.end('diagnostic output\n');
                 child.emit('close', 0, null);
@@ -299,6 +310,96 @@ suite('Extension Test Suite', () => {
             assert.equal(await readFile(tagFilePath, 'utf8'), NEW_TAGS);
         } finally {
             provider.dispose();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // 同じタグへの連続更新は同時実行せず、実行待ちの同一設定を最新の一回へ集約する。
+    test('serializes and coalesces overlapping updates for one tag file', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const firstStarted = createDeferred();
+        const releaseFirst = createDeferred();
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: () => undefined,
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(async () => {
+                spawnCallCount++;
+                if (spawnCallCount === 1) {
+                    firstStarted.resolve();
+                    await releaseFirst.promise;
+                    return OLD_TAGS;
+                }
+                return NEW_TAGS;
+            }),
+        });
+
+        await unlink(tagFilePath).catch(() => undefined);
+        try {
+            const first = provider.updateCtags(true, folder);
+            const replaced = provider.updateCtags(true, folder);
+            const latest = provider.updateCtags(true, folder);
+
+            await firstStarted.promise;
+            assert.equal(spawnCallCount, 1);
+            releaseFirst.resolve();
+            await Promise.all([first, replaced, latest]);
+
+            assert.equal(spawnCallCount, 2);
+            assert.equal(await readFile(tagFilePath, 'utf8'), NEW_TAGS);
+        } finally {
+            provider.dispose();
+            releaseFirst.resolve();
+            await unlink(tagFilePath).catch(() => undefined);
+        }
+    });
+
+    // provider破棄後は、同じタグへの実行待ち要求から新しいctagsを起動しない。
+    test('cancels a queued update when the provider is disposed', async function () {
+        if (!vscode.workspace.isTrusted) {
+            this.skip();
+        }
+
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        assert.ok(folder, 'The trusted test workspace was not opened');
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const firstStarted = createDeferred();
+        const releaseFirst = createDeferred();
+        let spawnCallCount = 0;
+        const provider = new CTagsSupportProvider({
+            outputChannel: {
+                appendLine: () => undefined,
+            } as unknown as vscode.OutputChannel,
+            spawnProcess: createSuccessfulFakeSpawn(async () => {
+                spawnCallCount++;
+                if (spawnCallCount === 1) {
+                    firstStarted.resolve();
+                    await releaseFirst.promise;
+                }
+            }),
+        });
+
+        await unlink(tagFilePath).catch(() => undefined);
+        try {
+            const running = provider.updateCtags(true, folder);
+            const queued = provider.updateCtags(true, folder);
+
+            await firstStarted.promise;
+            provider.dispose();
+            releaseFirst.resolve();
+            await Promise.all([running, queued]);
+
+            assert.equal(spawnCallCount, 1);
+        } finally {
+            provider.dispose();
+            releaseFirst.resolve();
             await unlink(tagFilePath).catch(() => undefined);
         }
     });

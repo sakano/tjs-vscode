@@ -19,6 +19,8 @@ import * as path from 'node:path';
 import type { Readable } from 'node:stream';
 import * as vscode from 'vscode';
 
+import { CoalescingTaskQueue } from './coalescingTaskQueue';
+
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_TIMEOUT_MS = 2_147_483_647;
 const FORCED_TERMINATION_WAIT_MS = 2_000;
@@ -659,6 +661,12 @@ type OutputForwarder = {
     dispose(): void;
 };
 
+class CtagsExecutionCancelledError extends Error {
+    public constructor() {
+        super('ctags was cancelled.');
+    }
+}
+
 /**
  * 設定パスをワークスペース内の実体パスへ変換し、シンボリックリンクとファイル種別を検証します。
  * タグファイルと同じディレクトリに、原子的置換用の一意な一時パスも生成します。
@@ -720,6 +728,8 @@ export class CTagsSupportProvider implements vscode.Disposable {
     private readonly spawnProcess: typeof spawn;
     private readonly isWorkspaceTrusted: () => boolean;
     private readonly controllers = new Set<AbortController>();
+    private readonly executionQueue = new CoalescingTaskQueue();
+    private disposed = false;
 
     public constructor(options: CTagsSupportProviderOptions = {}) {
         this.outputChannel = options.outputChannel ?? vscode.window.createOutputChannel('TJS Ctags');
@@ -729,12 +739,19 @@ export class CTagsSupportProvider implements vscode.Disposable {
     }
 
     public dispose(): void {
+        if (this.disposed) {
+            return;
+        }
+        this.disposed = true;
+        this.executionQueue.cancelPending(new CtagsExecutionCancelledError());
         for (const controller of this.controllers) {
             controller.abort();
         }
         this.controllers.clear();
         if (this.ownsOutputChannel) {
-            this.outputChannel.dispose();
+            void this.executionQueue.whenIdle().then(() => {
+                this.outputChannel.dispose();
+            });
         }
     }
 
@@ -745,6 +762,9 @@ export class CTagsSupportProvider implements vscode.Disposable {
      * @param folder 対象フォルダー。省略時はアクティブ文書または利用者の選択から決定します。
      */
     public async updateCtags(save = false, folder?: vscode.WorkspaceFolder): Promise<void> {
+        if (this.disposed) {
+            return;
+        }
         if (!this.isWorkspaceTrusted()) {
             this.outputChannel.appendLine('[trust] Ctags execution was blocked because the workspace is not trusted.');
             if (!save) {
@@ -754,6 +774,9 @@ export class CTagsSupportProvider implements vscode.Disposable {
         }
 
         const targetFolder = folder ?? await this.selectWorkspaceFolder();
+        if (this.disposed) {
+            return;
+        }
         if (targetFolder === undefined) {
             if (!save) {
                 this.notifyError('No supported workspace folder is currently open.');
@@ -777,8 +800,11 @@ export class CTagsSupportProvider implements vscode.Disposable {
 
         await Promise.allSettled(runnableProcesses.map(async ({ configuration: processConfiguration, index }) => {
             try {
-                await this.executeProcess(targetFolder, processConfiguration, index);
+                await this.scheduleProcess(targetFolder, processConfiguration, index);
             } catch (error) {
+                if (this.disposed && error instanceof CtagsExecutionCancelledError) {
+                    return;
+                }
                 const message = error instanceof Error ? error.message : String(error);
                 this.outputChannel.appendLine(`[ctagsProcess:${index}] ERROR ${message}`);
                 if (!save) {
@@ -794,6 +820,9 @@ export class CTagsSupportProvider implements vscode.Disposable {
      * @param document 保存された文書。
      */
     public async onDidSaveTextDocument(document: vscode.TextDocument): Promise<void> {
+        if (this.disposed) {
+            return;
+        }
         if (!this.isWorkspaceTrusted()) {
             return;
         }
@@ -874,6 +903,35 @@ export class CTagsSupportProvider implements vscode.Disposable {
     }
 
     /**
+     * 同じタグ出力先に対する実行を直列化します。
+     * 同じワークスペース設定から実行待ちの要求が重なった場合は、最新の要求だけを実行します。
+     */
+    private scheduleProcess(
+        folder: vscode.WorkspaceFolder,
+        configuration: CtagsProcessConfiguration,
+        processIndex: number,
+    ): Promise<void> {
+        const workspaceRoot = path.resolve(folder.uri.fsPath);
+        const tagSettingPath = `tjs.ctagsProcess[${processIndex}].tagFilePath`;
+        const tagFilePath = resolveWorkspaceRelativePath(
+            workspaceRoot,
+            configuration.tagFilePath,
+            tagSettingPath,
+        );
+        const resourceKey = process.platform === 'win32'
+            ? tagFilePath.toLowerCase()
+            : tagFilePath;
+        const taskKey = `${folder.uri.toString()}\0${processIndex}`;
+
+        return this.executionQueue.enqueue(resourceKey, taskKey, async () => {
+            if (this.disposed) {
+                throw new CtagsExecutionCancelledError();
+            }
+            await this.executeProcess(folder, configuration, processIndex);
+        });
+    }
+
+    /**
      * 一つの形式検証済み設定についてパスを確認してからctagsを起動し、
      * 成功した一時タグファイルを正式な出力へ昇格させます。
      * タイムアウト、起動失敗、異常終了時には既存タグを残し、一時ファイルを削除します。
@@ -892,6 +950,9 @@ export class CTagsSupportProvider implements vscode.Disposable {
             paths.temporaryTagFilePath,
             paths.searchPath,
         );
+        if (this.disposed) {
+            throw new CtagsExecutionCancelledError();
+        }
         const controller = new AbortController();
         this.controllers.add(controller);
         let temporaryFileWasPromoted = false;
@@ -927,7 +988,7 @@ export class CTagsSupportProvider implements vscode.Disposable {
                     throw new Error(`ctags timed out after ${configuration.timeoutMs} ms.`);
                 }
                 if (result.stopReason === 'cancelled') {
-                    throw new Error('ctags was cancelled.');
+                    throw new CtagsExecutionCancelledError();
                 }
                 if (result.processError !== undefined) {
                     throw new Error(`Unable to start ctags: ${result.processError.message}`);
@@ -946,6 +1007,9 @@ export class CTagsSupportProvider implements vscode.Disposable {
                     paths.tagFilePath,
                     `tjs.ctagsProcess[${processIndex}].tagFilePath`,
                 );
+                if (controller.signal.aborted || this.disposed) {
+                    throw new CtagsExecutionCancelledError();
+                }
                 await rename(paths.temporaryTagFilePath, paths.tagFilePath);
                 temporaryFileWasPromoted = true;
                 this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] Updated ${paths.tagFilePath}`);
