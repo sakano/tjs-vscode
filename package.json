@@ -20,19 +20,6 @@
         "CHANGELOG.md",
         "LICENSE"
     ],
-    "packageManager": "npm@11.16.0",
-    "devEngines": {
-        "runtime": {
-            "name": "node",
-            "version": "24.18.1",
-            "onFail": "error"
-        },
-        "packageManager": {
-            "name": "npm",
-            "version": "11.16.0",
-            "onFail": "error"
-        }
-    },
     "engines": {
         "node": "24.x",
         "vscode": "^1.125.0"
@@ -257,21 +244,17 @@
         "check-types": "tsc --noEmit -p ./",
         "bundle": "node ./esbuild.mjs",
         "bundle:production": "node ./esbuild.mjs --production",
-        "compile": "node ./scripts/run-scripts.mjs check-types bundle",
+        "compile": "npm run check-types && npm run bundle",
         "compile-tests": "tsc -p ./ --outDir out",
-        "watch": "node ./scripts/run-scripts.mjs --parallel watch:bundle watch:types",
         "watch:bundle": "node ./esbuild.mjs --watch",
         "watch:types": "tsc --noEmit --watch -p ./",
-        "package": "node ./scripts/run-scripts.mjs clean check-types bundle:production",
+        "package": "npm run clean && npm run check-types && npm run bundle:production",
         "vscode:prepublish": "npm run package",
-        "pretest": "node ./scripts/run-scripts.mjs clean check-types bundle compile-tests",
-        "test": "node ./scripts/run-scripts.mjs test:desktop test:web",
+        "pretest": "npm run clean && npm run bundle && npm run compile-tests",
+        "test": "npm run test:desktop && npm run test:web",
         "test:desktop": "vscode-test && node ./scripts/run-untrusted-tests.mjs",
         "test:web": "vscode-test-web --browserType=chromium --quality=stable --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js src/test/fixtures/trusted-workspace",
-        "vsix:list": "vsce ls --tree --no-dependencies",
-        "vsix:ls": "node ./scripts/run-scripts.mjs package vsix:list",
-        "vsix": "node ./scripts/package-vsix.mjs",
-        "vsix:verify": "node ./scripts/package-vsix.mjs --verify"
+        "vsix": "vsce package"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.10",
