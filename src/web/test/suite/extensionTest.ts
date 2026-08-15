@@ -11,10 +11,18 @@ suite('Web Extension Test Suite', () => {
         assert(vscode.env.uiKind === vscode.UIKind.Web, 'The test is not running in a Web extension host.');
 
         const extension = vscode.extensions.all.find(
-            candidate => candidate.packageJSON.name === 'tjs-vscode',
+            candidate => {
+                const packageJson: unknown = candidate.packageJSON;
+                return typeof packageJson === 'object'
+                    && packageJson !== null
+                    && 'name' in packageJson
+                    && packageJson.name === 'tjs-vscode';
+            },
         );
         assert(extension !== undefined, 'TJS extension was not found.');
-        assert(extension.packageJSON.browser === './dist/web/extension.js', 'The Web entry point is not declared.');
+        const packageJson: unknown = extension.packageJSON;
+        assert(typeof packageJson === 'object' && packageJson !== null, 'The extension manifest is invalid.');
+        assert('browser' in packageJson && packageJson.browser === './dist/web/extension.js', 'The Web entry point is not declared.');
         await extension.activate();
 
         const folder = vscode.workspace.workspaceFolders?.[0];
@@ -40,7 +48,9 @@ suite('Web Extension Test Suite', () => {
 
         assert(Array.isArray(colors), 'The document color provider returned no result.');
         assert(colors.length === 1, `Expected one document color, received ${colors.length}.`);
-        assert(colors[0].color.alpha === 128 / 255, `Unexpected alpha value: ${colors[0].color.alpha}`);
-        assert(colors[0].color.red === 1, `Unexpected red value: ${colors[0].color.red}`);
+        const color = colors[0];
+        assert(color !== undefined, 'The document color provider returned an empty result.');
+        assert(color.color.alpha === 128 / 255, `Unexpected alpha value: ${color.color.alpha}`);
+        assert(color.color.red === 1, `Unexpected red value: ${color.color.red}`);
     });
 });

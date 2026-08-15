@@ -54,14 +54,18 @@ suite('Ctags configuration', () => {
             extraOption: '--exclude="folder name" --regex-tjs=/foo\\1/ --exclude=C:\\temp',
         }]);
 
-        assert.deepEqual(parsed.processes[0].configuration.extraArgs, [
+        const process = parsed.processes[0];
+        const diagnostic = parsed.diagnostics[0];
+        assert.ok(process);
+        assert.ok(diagnostic);
+        assert.deepEqual(process.configuration.extraArgs, [
             '--exclude=folder name',
             '--regex-tjs=/foo\\1/',
             '--exclude=C:\\temp',
         ]);
         assert.equal(parsed.diagnostics.length, 1);
-        assert.equal(parsed.diagnostics[0].severity, 'warning');
-        assert.match(parsed.diagnostics[0].message, /deprecated/u);
+        assert.equal(diagnostic.severity, 'warning');
+        assert.match(diagnostic.message, /deprecated/u);
     });
 
     // 新旧の設定が併存した場合は、型安全なextraArgsを優先して移行結果を一意にする。
@@ -71,8 +75,12 @@ suite('Ctags configuration', () => {
             extraOption: '--sort=yes',
         }]);
 
-        assert.deepEqual(parsed.processes[0].configuration.extraArgs, ['--sort=no']);
-        assert.match(parsed.diagnostics[0].message, /ignored/u);
+        const process = parsed.processes[0];
+        const diagnostic = parsed.diagnostics[0];
+        assert.ok(process);
+        assert.ok(diagnostic);
+        assert.deepEqual(process.configuration.extraArgs, ['--sort=no']);
+        assert.match(diagnostic.message, /ignored/u);
     });
 
     // 曖昧な補正をせず、不正な引用符や型をプロセス起動前に設定エラーとして拒否する。

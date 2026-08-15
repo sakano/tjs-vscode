@@ -66,7 +66,13 @@ suite('Extension Test Suite', () => {
     // セキュリティ変更後も拡張機能が正常に起動し、公開コマンドを登録できることを確認する。
     test('activates and registers its commands', async () => {
         const extension = vscode.extensions.all.find(
-            candidate => candidate.packageJSON.name === 'tjs-vscode'
+            candidate => {
+                const packageJson: unknown = candidate.packageJSON;
+                return typeof packageJson === 'object'
+                    && packageJson !== null
+                    && 'name' in packageJson
+                    && packageJson.name === 'tjs-vscode';
+            }
         );
 
         assert.ok(extension, 'TJS extension was not found');
@@ -308,10 +314,10 @@ suite('Extension Test Suite', () => {
             outputChannel: {
                 appendLine: () => undefined,
             } as unknown as vscode.OutputChannel,
-            spawnProcess: (() => {
+            spawnProcess: () => {
                 spawnWasCalled = true;
                 throw new Error('spawn must not be called in an untrusted workspace');
-            }) as typeof import('node:child_process').spawn,
+            },
         });
 
         try {
@@ -330,10 +336,10 @@ suite('Extension Test Suite', () => {
             outputChannel: {
                 appendLine: (line: string) => logLines.push(line),
             } as unknown as vscode.OutputChannel,
-            spawnProcess: (() => {
+            spawnProcess: () => {
                 spawnWasCalled = true;
                 throw new Error('spawn must not be called for a virtual workspace');
-            }) as typeof import('node:child_process').spawn,
+            },
             isWorkspaceTrusted: () => true,
         });
         const virtualFolder: vscode.WorkspaceFolder = {

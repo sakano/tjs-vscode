@@ -22,6 +22,7 @@ try {
         'node_modules/@vscode/test-cli/out/runner.cjs',
     );
     // 通常テストと同じMochaランナーを使い、Restricted Modeに関係するテストだけを読み込む。
+    /** @type {NodeJS.ProcessEnv} */
     const testEnvironment = {
         ...process.env,
         VSCODE_TEST_OPTIONS: JSON.stringify({
@@ -58,7 +59,7 @@ try {
         child.once('error', reject);
         child.once('close', (exitCode, signal) => {
             if (exitCode === 0) {
-                resolve();
+                resolve(undefined);
             } else {
                 reject(new Error(`Untrusted workspace tests failed with ${exitCode ?? signal}.`));
             }

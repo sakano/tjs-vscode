@@ -60,7 +60,7 @@ export class ColorProvider implements vscode.DocumentColorProvider {
             colorText = Math.round(color.alpha * 255).toString(16).padStart(2, "0") + colorText;
         }
 
-        let isUpper = !/[a-f]/.test(text);
+        const isUpper = !/[a-f]/.test(text);
         if (isUpper) {
             colorText = colorText.toUpperCase();
         }

@@ -53,7 +53,9 @@ suite('Color Provider', () => {
                     tokenSource.token,
                 );
                 assert.ok(presentations);
-                return presentations[0].label;
+                const presentation = presentations[0];
+                assert.ok(presentation);
+                return presentation.label;
             }));
 
             assert.deepEqual(labels, ['0x1122ab', '0X801122AB']);
@@ -73,9 +75,9 @@ suite('Reference Provider', () => {
                 krkr2: false,
                 dll: false,
             }),
-            showQuickPick: async items => {
+            showQuickPick: items => {
                 shownItems = items;
-                return undefined;
+                return Promise.resolve(undefined);
             },
         });
 
@@ -96,12 +98,13 @@ suite('Reference Provider', () => {
         const openedUris: vscode.Uri[] = [];
         const provider = new ReferenceProvider({
             getReferencePalletConfiguration: () => configuration,
-            showQuickPick: async items => {
+            showQuickPick: items => {
                 shownItems = items;
-                return items.find(item => item.label === 'Window');
+                return Promise.resolve(items.find(item => item.label === 'Window'));
             },
-            openUri: async uri => {
+            openUri: uri => {
                 openedUris.push(uri);
+                return Promise.resolve();
             },
         });
 

@@ -1,8 +1,10 @@
 {
     "compilerOptions": {
-        "module": "Node16",
+        "allowJs": true,
+        "checkJs": true,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "target": "ES2022",
-        "outDir": "out",
         "lib": [
             "ES2022"
         ],
@@ -10,18 +12,20 @@
             "mocha",
             "node"
         ],
-        "sourceMap": true,
-        "rootDir": "src",
+        "noEmit": true,
         "strict": true,
-        "exactOptionalPropertyTypes": true,
-        "isolatedModules": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
         "noUncheckedIndexedAccess": true,
         "noUncheckedSideEffectImports": true
     },
+    "include": [
+        ".vscode-test.mjs",
+        "esbuild.mjs",
+        "eslint.config.mjs",
+        "scripts/**/*.mjs"
+    ],
     "exclude": [
         "node_modules",
-        ".vscode-test"
+        ".vscode-test",
+        ".vscode-test-web"
     ]
 }

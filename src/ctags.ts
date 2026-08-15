@@ -124,7 +124,7 @@ function readFileExtensions(
     if (!Array.isArray(value) || value.length === 0) {
         throw new Error(`tjs.ctagsProcess[${index}].fileExtensions must be a non-empty string array.`);
     }
-    if (!value.every(extension => typeof extension === 'string' && extension.length > 0 && !/[\0\r\n]/u.test(extension))) {
+    if (!value.every((extension): extension is string => typeof extension === 'string' && extension.length > 0 && !/[\0\r\n]/u.test(extension))) {
         throw new Error(`tjs.ctagsProcess[${index}].fileExtensions must contain non-empty strings without control characters.`);
     }
     return [...value];
@@ -158,7 +158,7 @@ export function tokenizeLegacyExtraOption(value: string): string[] {
     let quote: '\'' | '"' | undefined;
 
     for (let index = 0; index < value.length; index++) {
-        const character = value[index];
+        const character = value.charAt(index);
         if (character === '\\' && quote !== '\'') {
             const nextCharacter = value[index + 1];
             const escapesNextCharacter = nextCharacter !== undefined && (
@@ -340,7 +340,7 @@ export function parseRunOnSaveLanguages(value: unknown): string[] {
     if (value === undefined) {
         return [...DEFAULT_RUN_ON_SAVE_LANGUAGES];
     }
-    if (!Array.isArray(value) || !value.every(language => typeof language === 'string' && language.length > 0)) {
+    if (!Array.isArray(value) || !value.every((language): language is string => typeof language === 'string' && language.length > 0)) {
         throw new Error('tjs.ctagsRunOnSaveLanguages must be an array of non-empty strings.');
     }
     return [...value];
@@ -453,9 +453,9 @@ export type CtagsProcessCompletion = {
     closed: boolean;
     exitCode: number | null;
     signal: NodeJS.Signals | null;
-    processError?: Error;
-    inputError?: Error;
-    stopReason?: 'timeout' | 'cancelled';
+    processError: Error | undefined;
+    inputError: Error | undefined;
+    stopReason: 'timeout' | 'cancelled' | undefined;
 };
 
 const ignoreLateStreamError = (): void => undefined;

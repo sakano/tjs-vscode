@@ -14,6 +14,10 @@ for (const argument of arguments_) {
 const production = arguments_.has('--production');
 const watch = arguments_.has('--watch');
 
+/**
+ * @param {string} label
+ * @returns {import('esbuild').Plugin}
+ */
 function createProblemMatcherPlugin(label) {
     return {
         name: `problem-matcher-${label}`,
@@ -34,6 +38,7 @@ function createProblemMatcherPlugin(label) {
     };
 }
 
+/** @satisfies {import('esbuild').BuildOptions} */
 const commonOptions = {
     absWorkingDir: root,
     bundle: true,

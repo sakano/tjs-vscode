@@ -129,7 +129,7 @@ export class ReferenceProvider {
 
     public constructor(options: ReferenceProviderOptions = {}) {
         this.getReferencePalletConfiguration = options.getReferencePalletConfiguration
-            ?? (() => vscode.workspace.getConfiguration("tjs").referencePalletEnable);
+            ?? (() => vscode.workspace.getConfiguration('tjs').get<Readonly<Record<string, boolean | undefined>>>('referencePalletEnable'));
         this.showQuickPick = options.showQuickPick
             ?? ((items, quickPickOptions) => vscode.window.showQuickPick(items, quickPickOptions));
         this.openUri = options.openUri
@@ -152,12 +152,12 @@ export class ReferenceProvider {
         if (check("krkr2", true)) { Array.prototype.push.apply(this.pickItems, this.krkr2ReferenceMap); }
         if (check("krkrZ", true)) { Array.prototype.push.apply(this.pickItems, this.krkrZReferenceMap); }
         if (check("dll", true)) { Array.prototype.push.apply(this.pickItems, this.dllReferenceMap); }
-        this.pickItems.sort(this.compare);
+        this.pickItems.sort((a, b) => this.compare(a, b));
     }
 
     private compare(a: vscode.QuickPickItem, b: vscode.QuickPickItem): number {
-        const aStr = a.label + a.description;
-        const bStr = b.label + b.description;
+        const aStr = a.label + (a.description ?? '');
+        const bStr = b.label + (b.description ?? '');
         return aStr > bStr ? 1 : aStr === bStr ? 0 : -1;
     }
 
