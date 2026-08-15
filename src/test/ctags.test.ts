@@ -4,17 +4,22 @@ import * as path from 'node:path';
 import {
     buildCtagsArguments,
     createCtagsSpawnOptions,
-    isPathInside,
     isValidCtagsLine,
     parseCtagsProcesses,
     parseRunOnSaveLanguages,
-    resolveWorkspaceRelativePath,
     tokenizeLegacyExtraOption,
     validateExtraArgs,
     waitForCtagsProcess,
     type CtagsProcessConfiguration,
 } from '../ctags';
-import { createFakeChildProcess } from './testSupport';
+import {
+    prepareCtagsPaths,
+    resolveCtagsPaths,
+} from '../ctags/paths';
+import {
+    createFakeChildProcess,
+    getTestWorkspaceFolder,
+} from './testSupport';
 
 const baseConfiguration: CtagsProcessConfiguration = {
     tagFilePath: '.tags',
@@ -156,46 +161,46 @@ suite('Ctags paths and invocation', () => {
         }
     });
 
-    // 単純な文字列前方一致による別ディレクトリや別ドライブの誤判定を防ぐ。
-    test('checks POSIX and Windows containment without prefix confusion', () => {
-        assert.equal(isPathInside('/workspace', '/workspace/src', path.posix), true);
-        assert.equal(isPathInside('/workspace', '/workspace-other/src', path.posix), false);
-        assert.equal(isPathInside('/workspace', '/outside', path.posix), false);
+    // 相対パスはワークスペース基準、絶対パスはそのまま解決する。
+    test('resolves relative and absolute configured paths', async () => {
+        const folder = getTestWorkspaceFolder(true);
+        const workspaceRoot = path.resolve(folder.uri.fsPath);
+        const parentDirectory = path.dirname(workspaceRoot);
+        const absoluteTagFilePath = path.join(
+            parentDirectory,
+            `.tjs-ctags-path-test-${String(process.pid)}.tags`,
+        );
 
-        assert.equal(isPathInside('C:\\workspace', 'C:\\workspace\\src', path.win32), true);
-        assert.equal(isPathInside('C:\\workspace', 'C:\\workspace-other\\src', path.win32), false);
-        assert.equal(isPathInside('C:\\workspace', 'D:\\workspace\\src', path.win32), false);
+        const relativePaths = resolveCtagsPaths(folder, {
+            ...baseConfiguration,
+            tagFilePath: '../outside.tags',
+            searchPath: '..',
+        }, 0);
+        assert.equal(relativePaths.tagFilePath, path.resolve(workspaceRoot, '../outside.tags'));
+        assert.equal(relativePaths.searchPath, parentDirectory);
+
+        const absoluteConfiguration = {
+            ...baseConfiguration,
+            tagFilePath: absoluteTagFilePath,
+            searchPath: parentDirectory,
+        };
+        const preparedPaths = await prepareCtagsPaths(folder, absoluteConfiguration, 0);
+        assert.equal(preparedPaths.tagFilePath, absoluteTagFilePath);
+        assert.equal(preparedPaths.searchPath, parentDirectory);
+        assert.equal(path.dirname(preparedPaths.temporaryTagFilePath), parentDirectory);
     });
 
-    // タグ出力先と検索先をワークスペース内に限定し、絶対パスと親ディレクトリへの脱出を拒否する。
-    test('rejects absolute paths and paths escaping the workspace', () => {
-        const workspaceRoot = path.resolve('/workspace');
-
-        assert.equal(
-            resolveWorkspaceRelativePath(workspaceRoot, 'src/.tags', 'tagFilePath'),
-            path.join(workspaceRoot, 'src', '.tags'),
-        );
-        assert.throws(
-            () => resolveWorkspaceRelativePath(workspaceRoot, '../outside', 'tagFilePath'),
-            /outside the workspace/u,
-        );
-        assert.throws(
-            () => resolveWorkspaceRelativePath(workspaceRoot, path.resolve('/outside'), 'tagFilePath'),
-            /must be relative/u,
-        );
-    });
-
-    // 拡張機能が強制する入出力境界を末尾に置き、extraArgsから上書きできない順序を保証する。
-    test('places enforced boundaries after custom arguments', () => {
-        const extraArgument = '--exclude=folder with spaces;still-one-argument';
+    // 出力先と入力指定を末尾に組み立てる一方、リンク追跡の方針は利用者とctagsに委ねる。
+    test('appends managed paths without forcing link traversal behavior', () => {
+        const extraArgument = '--links=yes';
         const args = buildCtagsArguments(
             { ...baseConfiguration, extraArgs: [extraArgument] },
             '/workspace/.tags.tmp',
             '/workspace/src',
         );
 
-        assert.ok(args.indexOf(extraArgument) < args.indexOf('--links=no'));
-        assert.ok(args.indexOf('--links=no') < args.indexOf('-f'));
+        assert.ok(args.indexOf(extraArgument) < args.indexOf('-f'));
+        assert.equal(args.includes('--links=no'), false);
         assert.deepEqual(args.slice(-2), ['--recurse=yes', '/workspace/src']);
     });
 

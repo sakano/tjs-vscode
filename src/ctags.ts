@@ -12,9 +12,7 @@ export {
     type CtagsProcessConfiguration,
 } from './ctags/configuration';
 export {
-    isPathInside,
     isValidCtagsLine,
-    resolveWorkspaceRelativePath,
 } from './ctags/paths';
 export {
     buildCtagsArguments,

@@ -54,7 +54,6 @@ export function buildCtagsArguments(
         ...TJS_REGEX_ARGS,
         '--languages=tjs',
         ...configuration.extraArgs,
-        '--links=no',
         '-f',
         temporaryTagFilePath,
         configuration.searchRecursive ? '--recurse=yes' : '--recurse=no',

@@ -3,7 +3,6 @@ import {
     lstat,
     open,
     readdir,
-    realpath,
     stat,
     unlink,
 } from 'node:fs/promises';
@@ -11,8 +10,6 @@ import * as path from 'node:path';
 import type * as vscode from 'vscode';
 
 import type { CtagsProcessConfiguration } from './configuration';
-
-type PathOperations = Pick<typeof path, 'isAbsolute' | 'relative' | 'sep'>;
 
 export type ResolvedCtagsPaths = {
     workspaceRoot: string;
@@ -26,37 +23,7 @@ export type PreparedCtagsPaths = ResolvedCtagsPaths & {
     temporaryTagFilePath: string;
 };
 
-/** 候補パスがルート自身またはその配下にあるかを、パス要素単位で判定します。 */
-export function isPathInside(
-    rootPath: string,
-    candidatePath: string,
-    pathOperations: PathOperations = path,
-): boolean {
-    const relativePath = pathOperations.relative(rootPath, candidatePath);
-    return relativePath === '' || (
-        relativePath !== '..'
-        && !relativePath.startsWith(`..${pathOperations.sep}`)
-        && !pathOperations.isAbsolute(relativePath)
-    );
-}
-
-/** ワークスペース相対の設定値を絶対パスへ変換し、字句的な境界内に限定します。 */
-export function resolveWorkspaceRelativePath(
-    workspaceRoot: string,
-    configuredPath: string,
-    settingPath: string,
-): string {
-    if (path.isAbsolute(configuredPath)) {
-        throw new Error(`${settingPath} must be relative to the workspace folder.`);
-    }
-    const resolvedPath = path.resolve(workspaceRoot, configuredPath || '.');
-    if (!isPathInside(workspaceRoot, resolvedPath)) {
-        throw new Error(`${settingPath} resolves outside the workspace folder.`);
-    }
-    return resolvedPath;
-}
-
-/** 設定された検索先と出力先を字句的に解決します。 */
+/** 設定された検索先と出力先を絶対パスへ解決します。 */
 export function resolveCtagsPaths(
     folder: vscode.WorkspaceFolder,
     configuration: CtagsProcessConfiguration,
@@ -69,16 +36,8 @@ export function resolveCtagsPaths(
 
     return {
         workspaceRoot,
-        tagFilePath: resolveWorkspaceRelativePath(
-            workspaceRoot,
-            configuration.tagFilePath,
-            tagSettingPath,
-        ),
-        searchPath: resolveWorkspaceRelativePath(
-            workspaceRoot,
-            configuration.searchPath,
-            searchSettingPath,
-        ),
+        tagFilePath: path.resolve(workspaceRoot, configuration.tagFilePath),
+        searchPath: path.resolve(workspaceRoot, configuration.searchPath || '.'),
         tagSettingPath,
         searchSettingPath,
     };
@@ -186,30 +145,21 @@ export async function getNonRecursiveInputFiles(searchPath: string): Promise<str
     return inputFiles;
 }
 
-/** 設定パスの実体がワークスペース内にあり、期待するファイル種別であることを確認します。 */
+/** 設定パスが期待するファイル種別であることを確認します。 */
 export async function prepareCtagsPaths(
     folder: vscode.WorkspaceFolder,
     configuration: CtagsProcessConfiguration,
     processIndex: number,
 ): Promise<PreparedCtagsPaths> {
     const paths = resolveCtagsPaths(folder, configuration, processIndex);
-    const canonicalWorkspaceRoot = await realpath(paths.workspaceRoot);
 
-    const canonicalSearchPath = await realpath(paths.searchPath);
-    if (!isPathInside(canonicalWorkspaceRoot, canonicalSearchPath)) {
-        throw new Error(`${paths.searchSettingPath} resolves through a symbolic link outside the workspace folder.`);
-    }
-    const searchStats = await stat(canonicalSearchPath);
+    const searchStats = await stat(paths.searchPath);
     if (!searchStats.isDirectory()) {
         throw new Error(`${paths.searchSettingPath} must refer to a directory.`);
     }
 
     const tagDirectory = path.dirname(paths.tagFilePath);
-    const canonicalTagDirectory = await realpath(tagDirectory);
-    if (!isPathInside(canonicalWorkspaceRoot, canonicalTagDirectory)) {
-        throw new Error(`${paths.tagSettingPath} resolves through a symbolic link outside the workspace folder.`);
-    }
-    const tagDirectoryStats = await stat(canonicalTagDirectory);
+    const tagDirectoryStats = await stat(tagDirectory);
     if (!tagDirectoryStats.isDirectory()) {
         throw new Error(`${paths.tagSettingPath} parent must be a directory.`);
     }
@@ -217,7 +167,6 @@ export async function prepareCtagsPaths(
 
     return {
         ...paths,
-        searchPath: canonicalSearchPath,
         temporaryTagFilePath: path.join(
             tagDirectory,
             `.${path.basename(paths.tagFilePath)}.tjs-ctags-${randomUUID()}.tmp`,
