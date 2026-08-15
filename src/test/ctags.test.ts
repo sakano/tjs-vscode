@@ -72,15 +72,27 @@ suite('Ctags configuration', () => {
         assert.equal(parsed.diagnostics.filter(diagnostic => diagnostic.severity === 'error').length, 3);
     });
 
-    // 任意ファイルの読込・出力先変更につながるctags引数をextraArgsから注入できないことを守る。
-    test('rejects file operands and ctags input/output controls', () => {
-        for (const argument of ['payload.tjs', '-', '--', '-foutside', '-o', '-Lfiles', '-a', '--append=yes', '--filter', '--options=project.ctags']) {
-            assert.throws(
-                () => validateExtraArgs([argument]),
-                /must be a ctags option|reserved/u,
-                argument,
-            );
-        }
+    // Ctags固有の制約は利用者とCtagsに委ね、spawnに必要な型とNULだけを検証する。
+    test('minimally validates extraArgs without restricting ctags semantics', () => {
+        const argumentsList = [
+            '',
+            'payload.tjs',
+            '-',
+            '--',
+            '-foutside',
+            '-o',
+            '-Lfiles',
+            '-a',
+            '--append=yes',
+            '--filter',
+            '--options=project.ctags',
+            'line one\r\nline two',
+        ];
+
+        assert.deepEqual(validateExtraArgs(argumentsList), argumentsList);
+        assert.throws(() => validateExtraArgs('--sort=no'), /string array/u);
+        assert.throws(() => validateExtraArgs([1]), /must be a string/u);
+        assert.throws(() => validateExtraArgs(['before\0after']), /NUL/u);
     });
 
     // シェル用メタ文字を含む値も、展開されず単一のargv要素として扱われることを確認する。

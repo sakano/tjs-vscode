@@ -56,7 +56,7 @@ Visual Studio CodeにTJSファイル用の機能を追加します。 KAG/KAGEX�
       "fileExtensions": [ // tjsファイルとして検索されるファイル拡張子
         ".tjs"
       ],
-      "extraArgs": [ // 1要素につき1つのCtagsオプション（省略可能）
+      "extraArgs": [ // 1要素につき1つのCtags引数（省略可能）
         "--exclude=node_modules"
       ],
       "timeoutMs": 120000 // 0にするとタイムアウトを無効化

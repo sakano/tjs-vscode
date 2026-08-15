@@ -13,7 +13,7 @@
   "tjs.items.fileExtensions.description": "tjsファイルとして検索されるファイル拡張子",
   "tjs.items.extraOption.description": "Ctagsに渡す追加のコマンドラインオプション",
   "tjs.items.extraOption.deprecationMessage": "非推奨です。Ctagsのオプションを1要素ずつ指定する`extraArgs`を使用してください。`extraOption`は将来削除されます。",
-  "tjs.items.extraArgs.description": "Ctagsに渡す追加オプションです。1要素につき1オプションを指定します。ファイル引数と入出力を制御するオプションは拡張機能が予約しています。",
+  "tjs.items.extraArgs.description": "Ctagsに直接渡す追加引数です。各要素はシェルで解析されず、1つの引数として渡されます。",
   "tjs.items.timeoutMs.description": "Ctagsの最大実行時間（ミリ秒）です。0にするとタイムアウトを無効化します。",
   "tjs.ctagsRunOnSaveLanguages.description": "ファイルが保存されたときrunOnSaveがtrueのctagsプロセスを実行する言語",
   "tjs.referencePalletEnable.description": "リファレンスプロンプトに表示するか",

@@ -33,13 +33,6 @@ const TJS_REGEX_ARGS = [
     '--regex-tjs=/([a-zA-Z0-9_]+)[ \\t]*=[ \\t]*function/\\1/f,function/',
 ] as const;
 
-const FORBIDDEN_EXTRA_ARG_PATTERNS = [
-    /^-[fo]/,
-    /^-L/,
-    /^-a(?:$|[^-])/,
-    /^--(?:append|file-list|filter(?:-terminator)?|options(?:-maybe)?|output)(?:=|$)/,
-] as const;
-
 /** ctagsでタグファイルを生成するための設定 */
 export type CtagsProcessConfiguration = {
     tagFilePath: string;
@@ -218,14 +211,15 @@ export function tokenizeLegacyExtraOption(value: string): string[] {
 }
 
 /**
- * 追加引数が文字列配列であり、ctagsの入出力境界を変更しないことを検証します。
+ * 追加引数が文字列配列であり、プロセス引数として表現可能であることを検証します。
  *
- * シェル用メタ文字は`spawn`によって展開されないため拒否せず、引数内のリテラル文字として保持します。
+ * Ctagsオプションとしての意味は制限せず、妥当性の判断をCtagsと利用者に委ねます。
+ * シェル用メタ文字は`spawn`によって展開されず、引数内のリテラル文字として保持されます。
  *
  * @param value 検証する設定値。
  * @param settingPath エラーメッセージに含める設定項目のパス。
  * @returns 検証済みの新しい引数配列。
- * @throws 値が文字列配列でない場合、ファイルオペランドを含む場合、または予約済み引数を含む場合。
+ * @throws 値が文字列配列でない場合、またはプロセス引数に使用できないNULを含む場合。
  */
 export function validateExtraArgs(value: unknown, settingPath = 'extraArgs'): string[] {
     if (!Array.isArray(value)) {
@@ -233,17 +227,11 @@ export function validateExtraArgs(value: unknown, settingPath = 'extraArgs'): st
     }
 
     return value.map((argument, argumentIndex) => {
-        if (typeof argument !== 'string' || argument.length === 0) {
-            throw new Error(`${settingPath}[${argumentIndex}] must be a non-empty string.`);
+        if (typeof argument !== 'string') {
+            throw new Error(`${settingPath}[${argumentIndex}] must be a string.`);
         }
-        if (/[\0\r\n]/u.test(argument)) {
-            throw new Error(`${settingPath}[${argumentIndex}] must not contain control characters.`);
-        }
-        if (!argument.startsWith('-') || argument === '-' || argument === '--') {
-            throw new Error(`${settingPath}[${argumentIndex}] must be a ctags option, not a file operand.`);
-        }
-        if (FORBIDDEN_EXTRA_ARG_PATTERNS.some(pattern => pattern.test(argument))) {
-            throw new Error(`${settingPath}[${argumentIndex}] controls ctags input or output and is reserved by the extension.`);
+        if (argument.includes('\0')) {
+            throw new Error(`${settingPath}[${argumentIndex}] must not contain NUL.`);
         }
         return argument;
     });
