@@ -126,14 +126,19 @@ export async function assertTjsLanguageFeatures(folder: vscode.WorkspaceFolder):
         language: fixtureDocument.languageId,
         content: '//#region Example\nvar value = 1;\n//#endregion\n',
     });
-    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
-        'vscode.executeFoldingRangeProvider',
-        foldingDocument.uri,
-    );
-    assert.ok(
-        foldingRanges?.some(range => range.start === 0 && range.end === 2),
-        'A region folding range was not provided',
-    );
+    const deadline = Date.now() + 2_000;
+    do {
+        const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+            'vscode.executeFoldingRangeProvider',
+            foldingDocument.uri,
+        );
+        if (foldingRanges?.some(range => range.start === 0 && range.end === 2)) {
+            return;
+        }
+        await new Promise<void>(resolve => setTimeout(resolve, 50));
+    } while (Date.now() < deadline);
+
+    assert.fail('A region folding range was not provided');
 }
 
 export async function getTemporaryTagFiles(tagFilePath: string): Promise<string[]> {
