@@ -46,9 +46,16 @@ const commonOptions = {
     format: 'cjs',
     logLevel: 'silent',
     minify: production,
-    sourcemap: production ? false : true,
+    sourcemap: !production,
     sourcesContent: false,
 };
+
+const webEntryPoints = production
+    ? ['src/web/extension.ts']
+    : [
+        'src/web/extension.ts',
+        'src/web/test/suite/index.ts',
+    ];
 
 const contexts = await Promise.all([
     esbuild.context({
@@ -61,10 +68,7 @@ const contexts = await Promise.all([
     }),
     esbuild.context({
         ...commonOptions,
-        entryPoints: [
-            'src/web/extension.ts',
-            'src/web/test/suite/index.ts',
-        ],
+        entryPoints: webEntryPoints,
         outbase: join(root, 'src/web'),
         outdir: join(root, 'dist/web'),
         platform: 'browser',

@@ -1,22 +1,7 @@
 import * as assert from 'node:assert/strict';
 
 import { CoalescingTaskQueue } from '../coalescingTaskQueue';
-
-type Deferred = {
-    promise: Promise<void>;
-    resolve(): void;
-};
-
-function createDeferred(): Deferred {
-    let resolve: (() => void) | undefined;
-    const promise = new Promise<void>(promiseResolve => {
-        resolve = promiseResolve;
-    });
-    return {
-        promise,
-        resolve: () => resolve?.(),
-    };
-}
+import { createDeferred } from './testSupport';
 
 suite('Coalescing task queue', () => {
     test('serializes one resource and coalesces the same pending task', async () => {

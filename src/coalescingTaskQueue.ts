@@ -11,16 +11,12 @@ type ScheduledTask = {
     waiters: TaskWaiter[];
 };
 
-type QueueState = {
-    pending: ScheduledTask[];
-};
-
 /**
  * 同じリソースを更新するタスクを直列化し、同じタスクの待機中の要求を最新版へ集約します。
  * 異なるリソースに対するタスクは互いに待機しません。
  */
 export class CoalescingTaskQueue {
-    private readonly queues = new Map<string, QueueState>();
+    private readonly queues = new Map<string, ScheduledTask[]>();
     private readonly idleWaiters: Array<() => void> = [];
 
     public enqueue(resourceKey: string, taskKey: string, task: Task): Promise<void> {
@@ -29,15 +25,15 @@ export class CoalescingTaskQueue {
             const queue = this.queues.get(resourceKey);
 
             if (queue === undefined) {
-                const newQueue: QueueState = { pending: [] };
+                const newQueue = [{ taskKey, task, waiters: [waiter] }];
                 this.queues.set(resourceKey, newQueue);
-                void this.drain(resourceKey, newQueue, { taskKey, task, waiters: [waiter] });
+                void this.drain(resourceKey, newQueue);
                 return;
             }
 
-            const pendingTask = queue.pending.find(candidate => candidate.taskKey === taskKey);
+            const pendingTask = queue.find(candidate => candidate.taskKey === taskKey);
             if (pendingTask === undefined) {
-                queue.pending.push({ taskKey, task, waiters: [waiter] });
+                queue.push({ taskKey, task, waiters: [waiter] });
             } else {
                 pendingTask.task = task;
                 pendingTask.waiters.push(waiter);
@@ -48,7 +44,7 @@ export class CoalescingTaskQueue {
     /** 実行開始前のタスクをすべて取り消します。実行中のタスクは呼び出し側で停止します。 */
     public cancelPending(error: unknown): void {
         for (const queue of this.queues.values()) {
-            const pendingTasks = queue.pending.splice(0);
+            const pendingTasks = queue.splice(0);
             for (const pendingTask of pendingTasks) {
                 for (const waiter of pendingTask.waiters) {
                     waiter.reject(error);
@@ -69,10 +65,9 @@ export class CoalescingTaskQueue {
 
     private async drain(
         resourceKey: string,
-        queue: QueueState,
-        initialTask: ScheduledTask,
+        queue: ScheduledTask[],
     ): Promise<void> {
-        let currentTask: ScheduledTask | undefined = initialTask;
+        let currentTask = queue.shift();
 
         while (currentTask !== undefined) {
             try {
@@ -85,7 +80,7 @@ export class CoalescingTaskQueue {
                     waiter.reject(error);
                 }
             }
-            currentTask = queue.pending.shift();
+            currentTask = queue.shift();
         }
 
         if (this.queues.get(resourceKey) === queue) {

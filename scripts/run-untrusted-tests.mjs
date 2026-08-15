@@ -29,7 +29,7 @@ try {
             mochaOpts: { timeout: 20_000 },
             colorDefault: true,
             preload: [],
-            files: [path.join(repositoryRoot, 'out/test/extension.test.js')],
+            files: [path.join(repositoryRoot, 'out/test/untrustedWorkspace.test.js')],
         }),
     };
     delete testEnvironment.ELECTRON_RUN_AS_NODE;
@@ -43,7 +43,6 @@ try {
         '--disable-telemetry',
         '--skip-welcome',
         '--skip-release-notes',
-        '--no-cached-data',
         `--user-data-dir=${path.join(testStateRoot, 'user-data')}`,
         `--extensions-dir=${path.join(testStateRoot, 'extensions')}`,
         `--extensionDevelopmentPath=${repositoryRoot}`,

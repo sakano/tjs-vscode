@@ -1,15 +1,25 @@
 import { defineConfig } from '@vscode/test-cli';
 
+const trustedTestFiles = [
+    'out/test/coalescingTaskQueue.test.js',
+    'out/test/ctags.test.js',
+    'out/test/extension.test.js',
+    'out/test/providers.test.js',
+];
+const mocha = { timeout: 20_000 };
+
 export default defineConfig([
     {
         label: 'minimum',
-        files: 'out/test/**/*.test.js',
+        files: trustedTestFiles,
+        mocha,
         version: '1.125.0',
         workspaceFolder: './src/test/fixtures/trusted-workspace',
     },
     {
         label: 'stable',
-        files: 'out/test/**/*.test.js',
+        files: trustedTestFiles,
+        mocha,
         version: 'stable',
         workspaceFolder: './src/test/fixtures/trusted-workspace',
     },

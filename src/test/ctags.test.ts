@@ -1,8 +1,6 @@
 import * as assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { EventEmitter } from 'node:events';
 import * as path from 'node:path';
-import { PassThrough } from 'node:stream';
 import {
     buildCtagsArguments,
     createCtagsSpawnOptions,
@@ -16,6 +14,7 @@ import {
     waitForCtagsProcess,
     type CtagsProcessConfiguration,
 } from '../ctags';
+import { createFakeChildProcess } from './testSupport';
 
 const baseConfiguration: CtagsProcessConfiguration = {
     tagFilePath: '.tags',
@@ -26,18 +25,6 @@ const baseConfiguration: CtagsProcessConfiguration = {
     extraArgs: [],
     timeoutMs: 120_000,
 };
-
-function createFakeChildProcess(): import('node:child_process').ChildProcessWithoutNullStreams {
-    const child = new EventEmitter() as EventEmitter & {
-        stdin: PassThrough;
-        stdout: PassThrough;
-        stderr: PassThrough;
-    };
-    child.stdin = new PassThrough();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    return child as unknown as import('node:child_process').ChildProcessWithoutNullStreams;
-}
 
 suite('Ctags configuration', () => {
     // 設定が未指定でも、安全側の既定値だけで実行設定を組み立てられることを保証する。

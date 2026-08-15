@@ -7,7 +7,7 @@ suite('Color Provider', () => {
     test('finds RGB and ARGB colors in a TJS document', async () => {
         const document = await vscode.workspace.openTextDocument({
             language: 'tjs',
-            content: '0x1234Ab\n0X80112233',
+            content: '0x1234Ab\n0x1234567\n0X80112233',
         });
         const tokenSource = new vscode.CancellationTokenSource();
 
@@ -27,7 +27,7 @@ suite('Color Provider', () => {
                 ]),
                 [
                     [0, 0, 0, 8, 0x12 / 255, 0x34 / 255, 0xab / 255, 1],
-                    [1, 0, 1, 10, 0x11 / 255, 0x22 / 255, 0x33 / 255, 0x80 / 255],
+                    [2, 0, 2, 10, 0x11 / 255, 0x22 / 255, 0x33 / 255, 0x80 / 255],
                 ],
             );
         } finally {
@@ -66,15 +66,10 @@ suite('Color Provider', () => {
 });
 
 suite('Reference Provider', () => {
-    test('shows TJS and krkrZ references with the default configuration', async () => {
+    test('shows the manifest defaults when the configuration is undefined', async () => {
         let shownItems: readonly vscode.QuickPickItem[] = [];
         const provider = new ReferenceProvider({
-            getReferencePalletConfiguration: () => ({
-                tjs: true,
-                krkrZ: true,
-                krkr2: false,
-                dll: false,
-            }),
+            getReferencePalletConfiguration: () => undefined,
             showQuickPick: items => {
                 shownItems = items;
                 return Promise.resolve(undefined);
@@ -87,20 +82,38 @@ suite('Reference Provider', () => {
         assert.deepEqual(descriptions, ['(TJS)', '(krkrZ)'].sort());
     });
 
-    test('reloads reference choices and opens the selected URI once', async () => {
+    test('uses manifest defaults for missing properties in a partial configuration', async () => {
+        let shownItems: readonly vscode.QuickPickItem[] = [];
+        const provider = new ReferenceProvider({
+            getReferencePalletConfiguration: () => ({ krkr2: true }),
+            showQuickPick: items => {
+                shownItems = items;
+                return Promise.resolve(undefined);
+            },
+        });
+
+        await provider.openPallet();
+
+        const descriptions = [...new Set(shownItems.map(item => item.description))].sort();
+        assert.deepEqual(descriptions, ['(TJS)', '(krkr2)', '(krkrZ)'].sort());
+    });
+
+    test('reads reference choices when opening the palette and opens the selected URI once', async () => {
         let configuration: Readonly<Record<string, boolean>> = {
             tjs: true,
             krkrZ: true,
             krkr2: false,
             dll: false,
         };
-        let shownItems: readonly vscode.QuickPickItem[] = [];
+        const shownItemSets: (readonly vscode.QuickPickItem[])[] = [];
         const openedUris: vscode.Uri[] = [];
         const provider = new ReferenceProvider({
             getReferencePalletConfiguration: () => configuration,
             showQuickPick: items => {
-                shownItems = items;
-                return Promise.resolve(items.find(item => item.label === 'Window'));
+                shownItemSets.push(items);
+                return Promise.resolve(shownItemSets.length === 2
+                    ? items.find(item => item.label === 'Window')
+                    : undefined);
             },
             openUri: uri => {
                 openedUris.push(uri);
@@ -108,11 +121,17 @@ suite('Reference Provider', () => {
             },
         });
 
+        await provider.openPallet();
         configuration = { tjs: false, krkrZ: false, krkr2: true, dll: false };
-        provider.onDidChangeConfiguration();
         await provider.openPallet();
 
-        assert.deepEqual([...new Set(shownItems.map(item => item.description))], ['(krkr2)']);
+        assert.deepEqual(
+            shownItemSets.map(items => [...new Set(items.map(item => item.description))].sort()),
+            [
+                ['(TJS)', '(krkrZ)'].sort(),
+                ['(krkr2)'],
+            ],
+        );
         assert.deepEqual(
             openedUris.map(uri => uri.toString()),
             ['https://krkrz.github.io/krkr2doc/kr2doc/contents/f_Window.html'],

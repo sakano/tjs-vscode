@@ -1,5 +1,3 @@
-'use strict';
-
 import type { ExtensionContext } from 'vscode';
 
 import { activateCommon } from '../commonExtension';

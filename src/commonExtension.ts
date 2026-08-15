@@ -1,5 +1,3 @@
-'use strict';
-
 import * as vscode from 'vscode';
 
 import { ColorProvider } from './colorProvider';
@@ -11,9 +9,6 @@ export function activateCommon(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand(
         'tjs.openReferencePallet',
         () => referenceProvider.openPallet(),
-    ));
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(
-        () => referenceProvider.onDidChangeConfiguration(),
     ));
 
     context.subscriptions.push(vscode.languages.registerColorProvider(
