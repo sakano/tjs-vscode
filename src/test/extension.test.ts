@@ -3,11 +3,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CTagsSupportProvider } from '../ctags';
+import { DEFAULT_CTAGS_OUTPUT_LIMITS } from '../ctags/process';
 import {
     activateTestExtension,
     assertTjsLanguageFeatures,
     cleanupTagOutput,
     createDeferred,
+    createFakeChildProcess,
     createOutputChannelStub,
     createSuccessfulFakeSpawn,
     getTemporaryTagFiles,
@@ -84,6 +86,65 @@ suite('Extension Test Suite', () => {
 
             // 原子的置換のために作った一時ファイルを正常終了後に残さない。
             assert.deepEqual(await getTemporaryTagFiles(tagFilePath), []);
+        } finally {
+            provider.dispose();
+            await cleanupTagOutput(tagFilePath);
+        }
+    });
+
+    // 診断出力が上限を超えた実行は停止し、生成途中のファイルを既存タグへ昇格しない。
+    test('aborts ctags and preserves the existing tag file when output exceeds a limit', async () => {
+        const folder = getTestWorkspaceFolder(true);
+        const tagFilePath = path.join(folder.uri.fsPath, '.test-output.tags');
+        const logLines: string[] = [];
+        let childWasAborted = false;
+        const fakeSpawn = ((
+            _command: string,
+            args: readonly string[],
+            options: import('node:child_process').SpawnOptions,
+        ) => {
+            const child = createFakeChildProcess();
+            options.signal?.addEventListener('abort', () => {
+                childWasAborted = true;
+                child.stdout.end();
+                child.stderr.end();
+                child.emit('close', null, 'SIGKILL');
+            }, { once: true });
+
+            queueMicrotask(() => {
+                void (async () => {
+                    const outputOptionIndex = args.indexOf('-f');
+                    const temporaryTagFilePath = args[outputOptionIndex + 1];
+                    assert.ok(temporaryTagFilePath);
+                    await writeFile(temporaryTagFilePath, NEW_TAGS, 'utf8');
+                    child.stdout.write(
+                        Buffer.alloc(DEFAULT_CTAGS_OUTPUT_LIMITS.maxLineBytes + 1, 0x61),
+                    );
+                })().catch(error => {
+                    child.emit('error', error);
+                    child.emit('close', 1, null);
+                });
+            });
+            return child;
+        }) as unknown as typeof import('node:child_process').spawn;
+
+        await writeFile(tagFilePath, OLD_TAGS, 'utf8');
+        const provider = new CTagsSupportProvider({
+            outputChannel: createOutputChannelStub(logLines),
+            spawnProcess: fakeSpawn,
+        });
+
+        try {
+            await provider.updateCtags(true, folder);
+
+            assert.equal(childWasAborted, true);
+            assert.equal(await readFile(tagFilePath, 'utf8'), OLD_TAGS);
+            assert.deepEqual(await getTemporaryTagFiles(tagFilePath), []);
+            assert.ok(logLines.some(line => line.endsWith('… [truncated]')));
+            assert.ok(logLines.some(line => line.includes(
+                `${String(DEFAULT_CTAGS_OUTPUT_LIMITS.maxLineBytes)}-byte line limit`,
+            )));
+            assert.equal(logLines.some(line => line.includes('ctags was cancelled')), false);
         } finally {
             provider.dispose();
             await cleanupTagOutput(tagFilePath);

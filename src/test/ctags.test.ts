@@ -1,6 +1,14 @@
 import * as assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import {
+    mkdir,
+    mkdtemp,
+    rm,
+    writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { PassThrough, Writable } from 'node:stream';
 import {
     buildCtagsArguments,
     createCtagsSpawnOptions,
@@ -13,11 +21,21 @@ import {
     type CtagsProcessConfiguration,
 } from '../ctags';
 import {
+    assertReplaceableTagFile,
+    getNonRecursiveInputFileLines,
+    MAX_TAG_FILE_FIRST_LINE_BYTES,
     prepareCtagsPaths,
     resolveCtagsPaths,
 } from '../ctags/paths';
 import {
+    createCtagsOutputForwarder,
+    CtagsOutputLimitError,
+    writeNonRecursiveInputFiles,
+    type CtagsOutputLimits,
+} from '../ctags/process';
+import {
     createFakeChildProcess,
+    createOutputChannelStub,
     getTestWorkspaceFolder,
 } from './testSupport';
 
@@ -161,6 +179,30 @@ suite('Ctags paths and invocation', () => {
         }
     });
 
+    // 既存タグの先頭行は固定長だけ読み、境界内の行を許可して境界超過を明示的に拒否する。
+    test('bounds the existing tag file first-line read', async () => {
+        const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'tjs-ctags-prefix-'));
+        const tagFilePath = path.join(temporaryRoot, 'tags');
+        const validPrefix = 'tag\texample.tjs\t/';
+        const boundaryLine = validPrefix
+            + 'x'.repeat(MAX_TAG_FILE_FIRST_LINE_BYTES - Buffer.byteLength(validPrefix));
+
+        try {
+            await writeFile(tagFilePath, `${boundaryLine}\n`, 'latin1');
+            await assert.doesNotReject(
+                assertReplaceableTagFile(tagFilePath, 'test.tagFilePath'),
+            );
+
+            await writeFile(tagFilePath, `${boundaryLine}x\n`, 'latin1');
+            await assert.rejects(
+                assertReplaceableTagFile(tagFilePath, 'test.tagFilePath'),
+                new RegExp(`first line exceeds ${String(MAX_TAG_FILE_FIRST_LINE_BYTES)} bytes`, 'u'),
+            );
+        } finally {
+            await rm(temporaryRoot, { recursive: true, force: true });
+        }
+    });
+
     // 相対パスはワークスペース基準、絶対パスはそのまま解決する。
     test('resolves relative and absolute configured paths', async () => {
         const folder = getTestWorkspaceFolder(true);
@@ -213,6 +255,224 @@ suite('Ctags paths and invocation', () => {
         );
 
         assert.deepEqual(args.slice(-3), ['--recurse=no', '-L', '-']);
+    });
+
+    // UTF-8の文字数ではなくbyte数で1行を制限し、保持した範囲だけを診断へ転送する。
+    test('truncates and rejects an overlong ctags output line by byte length', () => {
+        const stream = new PassThrough();
+        const logLines: string[] = [];
+        const failures: CtagsOutputLimitError[] = [];
+        const limits: CtagsOutputLimits = {
+            maxLineBytes: 4,
+            maxTotalBytes: 100,
+            maxLines: 10,
+        };
+        const forwarder = createCtagsOutputForwarder(
+            stream,
+            createOutputChannelStub(logLines),
+            '[test] stdout',
+            'stdout',
+            error => failures.push(error),
+            limits,
+        );
+
+        try {
+            stream.write('あab', 'utf8');
+            stream.write('ignored\n', 'utf8');
+            forwarder.flush();
+
+            assert.equal(failures.length, 1);
+            assert.equal(forwarder.failure, failures[0]);
+            assert.match(failures[0]?.message ?? '', /4-byte line limit/u);
+            assert.deepEqual(logLines, ['[test] stdout: あa… [truncated]']);
+        } finally {
+            forwarder.dispose();
+        }
+    });
+
+    // 改行を含む複数chunkでもstream全体のbyte数を数え、途中行だけを有限長で残す。
+    test('truncates and rejects ctags output beyond the total byte limit', () => {
+        const stream = new PassThrough();
+        const logLines: string[] = [];
+        let failure: CtagsOutputLimitError | undefined;
+        const forwarder = createCtagsOutputForwarder(
+            stream,
+            createOutputChannelStub(logLines),
+            '[test] stderr',
+            'stderr',
+            error => {
+                failure = error;
+            },
+            { maxLineBytes: 10, maxTotalBytes: 5, maxLines: 10 },
+        );
+
+        try {
+            stream.write('a\n', 'utf8');
+            stream.write('bcdX', 'utf8');
+
+            assert.match(failure?.message ?? '', /5-byte output limit/u);
+            assert.deepEqual(logLines, [
+                '[test] stderr: a',
+                '[test] stderr: bcd… [truncated]',
+            ]);
+        } finally {
+            forwarder.dispose();
+        }
+    });
+
+    // 空行の連打でもOutputChannel呼出し回数を行数上限内に留める。
+    test('rejects ctags output beyond the line count limit', () => {
+        const stream = new PassThrough();
+        const logLines: string[] = [];
+        let failure: CtagsOutputLimitError | undefined;
+        const forwarder = createCtagsOutputForwarder(
+            stream,
+            createOutputChannelStub(logLines),
+            '[test] stdout',
+            'stdout',
+            error => {
+                failure = error;
+            },
+            { maxLineBytes: 10, maxTotalBytes: 100, maxLines: 2 },
+        );
+
+        try {
+            stream.write('\n\nthird\n', 'utf8');
+
+            assert.match(failure?.message ?? '', /2-line output limit/u);
+            assert.deepEqual(logLines, ['[test] stdout: ', '[test] stdout: ']);
+        } finally {
+            forwarder.dispose();
+        }
+    });
+
+    // CRLFは行終端のCRだけを除き、改行なしの末尾CRは従来どおり内容として保持する。
+    test('preserves bounded output line ending behavior across chunks', () => {
+        const stream = new PassThrough();
+        const logLines: string[] = [];
+        const forwarder = createCtagsOutputForwarder(
+            stream,
+            createOutputChannelStub(logLines),
+            '[test] stdout',
+            'stdout',
+            error => assert.fail(error.message),
+            { maxLineBytes: 20, maxTotalBytes: 100, maxLines: 10 },
+        );
+
+        try {
+            stream.write('first\r', 'utf8');
+            stream.write('\nsecond\r', 'utf8');
+            forwarder.flush();
+
+            assert.deepEqual(logLines, ['[test] stdout: first', '[test] stdout: second\r']);
+        } finally {
+            forwarder.dispose();
+        }
+    });
+
+    // 巨大なflat directoryでも全件を配列化せず、stdinのbackpressureに従って通常ファイルだけを送る。
+    test('streams non-recursive input files with backpressure', async () => {
+        const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'tjs-ctags-input-'));
+        const searchPath = path.join(temporaryRoot, 'flat');
+        const firstFilePath = path.join(searchPath, 'z-first.tjs');
+        const secondFilePath = path.join(searchPath, 'a second.tjs');
+        const receivedChunks: Buffer[] = [];
+
+        try {
+            await mkdir(path.join(searchPath, 'nested'), { recursive: true });
+            await Promise.all([
+                writeFile(firstFilePath, '', 'utf8'),
+                writeFile(secondFilePath, '', 'utf8'),
+                writeFile(path.join(searchPath, 'nested', 'ignored.tjs'), '', 'utf8'),
+            ]);
+
+            const input = new Writable({
+                highWaterMark: 1,
+                write(chunk: Buffer, _encoding, callback): void {
+                    setImmediate(() => {
+                        receivedChunks.push(Buffer.from(chunk));
+                        callback();
+                    });
+                },
+            });
+            const controller = new AbortController();
+
+            await writeNonRecursiveInputFiles(searchPath, input, controller.signal);
+
+            const receivedPaths = Buffer.concat(receivedChunks)
+                .toString('utf8')
+                .split('\n')
+                .filter(line => line.length > 0);
+            assert.deepEqual(
+                new Set(receivedPaths),
+                new Set([firstFilePath, secondFilePath]),
+            );
+            assert.equal(input.writableFinished, true);
+        } finally {
+            await rm(temporaryRoot, { recursive: true, force: true });
+        }
+    });
+
+    // backpressure待機中の中断でも列挙を停止し、directory handleとstdinを閉じる。
+    test('cancels non-recursive input streaming', async () => {
+        const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'tjs-ctags-cancel-'));
+        const searchPath = path.join(temporaryRoot, 'flat');
+        let releaseWrite: (() => void) | undefined;
+        let notifyWriteStarted: (() => void) | undefined;
+        const writeStarted = new Promise<void>(resolve => {
+            notifyWriteStarted = resolve;
+        });
+
+        try {
+            await mkdir(searchPath);
+            await writeFile(path.join(searchPath, 'example.tjs'), '', 'utf8');
+
+            const input = new Writable({
+                highWaterMark: 1,
+                write(_chunk: Buffer, _encoding, callback): void {
+                    releaseWrite = () => callback();
+                    notifyWriteStarted?.();
+                },
+            });
+            const controller = new AbortController();
+            const writing = writeNonRecursiveInputFiles(searchPath, input, controller.signal);
+
+            await writeStarted;
+            controller.abort();
+            releaseWrite?.();
+
+            await assert.rejects(
+                writing,
+                (error: unknown) => error instanceof Error && error.name === 'AbortError',
+            );
+            assert.equal(input.destroyed, true);
+        } finally {
+            releaseWrite?.();
+            await rm(temporaryRoot, { recursive: true, force: true });
+        }
+    });
+
+    // generator単体でも中断を各entry間で検出し、以降の列挙を続けない。
+    test('checks cancellation while enumerating non-recursive files', async () => {
+        const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'tjs-ctags-iterate-'));
+        const controller = new AbortController();
+        let iterator: AsyncGenerator<string> | undefined;
+
+        try {
+            await writeFile(path.join(temporaryRoot, 'example.tjs'), '', 'utf8');
+            iterator = getNonRecursiveInputFileLines(temporaryRoot, controller.signal);
+
+            const first = await iterator.next();
+            assert.equal(first.done, false);
+
+            const cancellation = new Error('cancel directory iteration');
+            controller.abort(cancellation);
+            await assert.rejects(iterator.next(), error => error === cancellation);
+        } finally {
+            controller.abort();
+            await iterator?.return(undefined);
+            await rm(temporaryRoot, { recursive: true, force: true });
+        }
     });
 
     // P0対策の中核として、パスや引数に関係なくシェルを介さずctagsを起動する。

@@ -15,14 +15,52 @@ const production = arguments_.has('--production');
 const watch = arguments_.has('--watch');
 
 /**
+ * @typedef {{
+ *     onStart(label: string): void;
+ *     onEnd(label: string): void;
+ * }} WatchBuildReporter
+ */
+
+/**
+ * @param {readonly string[]} labels
+ * @returns {WatchBuildReporter}
+ */
+function createWatchBuildReporter(labels) {
+    const pendingInitialBuilds = new Set(labels);
+    const activeBuilds = new Set();
+    let cycleStarted = false;
+
+    return {
+        onStart(label) {
+            if (!cycleStarted) {
+                console.log('[watch] build started');
+                cycleStarted = true;
+            }
+            activeBuilds.add(label);
+        },
+        onEnd(label) {
+            activeBuilds.delete(label);
+            pendingInitialBuilds.delete(label);
+
+            if (cycleStarted && activeBuilds.size === 0 && pendingInitialBuilds.size === 0) {
+                console.log('[watch] build finished');
+                cycleStarted = false;
+            }
+        },
+    };
+}
+
+/**
  * @param {string} label
+ * @param {WatchBuildReporter | undefined} watchBuildReporter
  * @returns {import('esbuild').Plugin}
  */
-function createProblemMatcherPlugin(label) {
+function createProblemMatcherPlugin(label, watchBuildReporter) {
     return {
         name: `problem-matcher-${label}`,
         setup(build) {
             build.onStart(() => {
+                watchBuildReporter?.onStart(label);
                 console.log(`[watch:${label}] build started`);
             });
             build.onEnd(result => {
@@ -33,6 +71,7 @@ function createProblemMatcherPlugin(label) {
                     }
                 }
                 console.log(`[watch:${label}] build finished`);
+                watchBuildReporter?.onEnd(label);
             });
         },
     };
@@ -57,13 +96,17 @@ const webEntryPoints = production
         'src/web/test/suite/index.ts',
     ];
 
+const watchBuildReporter = watch
+    ? createWatchBuildReporter(['node', 'web'])
+    : undefined;
+
 const contexts = await Promise.all([
     esbuild.context({
         ...commonOptions,
         entryPoints: ['src/extension.ts'],
         outfile: join(root, 'dist/extension.js'),
         platform: 'node',
-        plugins: [createProblemMatcherPlugin('node')],
+        plugins: [createProblemMatcherPlugin('node', watchBuildReporter)],
         target: 'node24.15',
     }),
     esbuild.context({
@@ -72,7 +115,7 @@ const contexts = await Promise.all([
         outbase: join(root, 'src/web'),
         outdir: join(root, 'dist/web'),
         platform: 'browser',
-        plugins: [createProblemMatcherPlugin('web')],
+        plugins: [createProblemMatcherPlugin('web', watchBuildReporter)],
         target: 'es2022',
     }),
 ]);

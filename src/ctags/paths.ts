@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
     lstat,
     open,
-    readdir,
+    opendir,
     stat,
     unlink,
 } from 'node:fs/promises';
@@ -10,6 +10,8 @@ import * as path from 'node:path';
 import type * as vscode from 'vscode';
 
 import type { CtagsProcessConfiguration } from './configuration';
+
+export const MAX_TAG_FILE_FIRST_LINE_BYTES = 64 * 1_024;
 
 export type ResolvedCtagsPaths = {
     workspaceRoot: string;
@@ -73,27 +75,38 @@ function isErrnoException(error: unknown, code: string): boolean {
     return error instanceof Error && (error as NodeJS.ErrnoException).code === code;
 }
 
-async function fileHasValidTagFilePrefix(tagFilePath: string): Promise<boolean> {
+type TagFilePrefixValidation = 'valid' | 'invalid' | 'line-too-long';
+
+async function validateTagFilePrefix(tagFilePath: string): Promise<TagFilePrefixValidation> {
     const file = await open(tagFilePath, 'r');
-    const firstBytes = Buffer.alloc(2);
+    const prefix = Buffer.allocUnsafe(MAX_TAG_FILE_FIRST_LINE_BYTES + 1);
 
     try {
-        const { bytesRead } = await file.read(firstBytes, 0, firstBytes.length, 0);
+        const { bytesRead } = await file.read(prefix, 0, prefix.length, 0);
         if (bytesRead === 0) {
-            return true;
+            return 'valid';
         }
         if (
-            bytesRead === 2
-            && firstBytes[0] === 0x0c
-            && (firstBytes[1] === 0x0a || firstBytes[1] === 0x0d)
+            bytesRead >= 2
+            && prefix[0] === 0x0c
+            && (prefix[1] === 0x0a || prefix[1] === 0x0d)
         ) {
-            return true;
+            return 'valid';
         }
 
-        for await (const line of file.readLines({ encoding: 'latin1' })) {
-            return isValidCtagsLine(line);
+        const bytes = prefix.subarray(0, bytesRead);
+        const newlineIndex = bytes.indexOf(0x0a);
+        if (newlineIndex < 0 && bytesRead > MAX_TAG_FILE_FIRST_LINE_BYTES) {
+            return 'line-too-long';
         }
-        return false;
+
+        let lineEnd = newlineIndex < 0 ? bytesRead : newlineIndex;
+        if (lineEnd > 0 && bytes[lineEnd - 1] === 0x0d) {
+            lineEnd--;
+        }
+        return isValidCtagsLine(bytes.subarray(0, lineEnd).toString('latin1'))
+            ? 'valid'
+            : 'invalid';
     } finally {
         await file.close();
     }
@@ -112,7 +125,11 @@ export async function assertReplaceableTagFile(
         if (!targetStats.isFile()) {
             throw new Error(`${settingPath} must refer to a regular file.`);
         }
-        if (!await fileHasValidTagFilePrefix(tagFilePath)) {
+        const prefixValidation = await validateTagFilePrefix(tagFilePath);
+        if (prefixValidation === 'line-too-long') {
+            throw new Error(`${settingPath} first line exceeds ${String(MAX_TAG_FILE_FIRST_LINE_BYTES)} bytes; refusing to overwrite it.`);
+        }
+        if (prefixValidation === 'invalid') {
             throw new Error(`${settingPath} does not look like a tag file; refusing to overwrite it.`);
         }
     } catch (error) {
@@ -130,19 +147,35 @@ export async function assertGeneratedTagFile(tagFilePath: string): Promise<void>
     }
 }
 
-/** 非再帰検索用に、検索ディレクトリ直下の通常ファイルを決定的な順序で列挙します。 */
-export async function getNonRecursiveInputFiles(searchPath: string): Promise<string[]> {
-    const directoryEntries = await readdir(searchPath, { withFileTypes: true });
-    const inputFiles = directoryEntries
-        .filter(entry => entry.isFile())
-        .map(entry => path.join(searchPath, entry.name))
-        .sort((left, right) => left.localeCompare(right));
+/** 非再帰検索用に、検索ディレクトリ直下の通常ファイルを逐次列挙します。 */
+export async function* getNonRecursiveInputFileLines(
+    searchPath: string,
+    signal: AbortSignal,
+): AsyncGenerator<string> {
+    signal.throwIfAborted();
+    const directory = await opendir(searchPath);
 
-    const unsupportedPath = inputFiles.find(filePath => /[\r\n]/u.test(filePath) || /\s$/u.test(filePath));
-    if (unsupportedPath !== undefined) {
-        throw new Error(`Cannot pass a file name containing a line break or trailing whitespace to ctags: ${unsupportedPath}`);
+    try {
+        while (true) {
+            signal.throwIfAborted();
+            const entry = await directory.read();
+            signal.throwIfAborted();
+            if (entry === null) {
+                return;
+            }
+            if (!entry.isFile()) {
+                continue;
+            }
+
+            const filePath = path.join(searchPath, entry.name);
+            if (/[\r\n]/u.test(filePath) || /\s$/u.test(filePath)) {
+                throw new Error(`Cannot pass a file name containing a line break or trailing whitespace to ctags: ${filePath}`);
+            }
+            yield `${filePath}\n`;
+        }
+    } finally {
+        await directory.close();
     }
-    return inputFiles;
 }
 
 /** 設定パスが期待するファイル種別であることを確認します。 */

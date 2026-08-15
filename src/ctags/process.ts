@@ -4,19 +4,33 @@ import {
     type SpawnOptions,
 } from 'node:child_process';
 import { rename } from 'node:fs/promises';
-import type { Readable } from 'node:stream';
+import type { Readable, Writable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type * as vscode from 'vscode';
 
 import type { CtagsProcessConfiguration } from './configuration';
 import {
     assertGeneratedTagFile,
     assertReplaceableTagFile,
-    getNonRecursiveInputFiles,
+    getNonRecursiveInputFileLines,
     prepareCtagsPaths,
     removeFileIfExists,
 } from './paths';
 
 const FORCED_TERMINATION_WAIT_MS = 2_000;
+
+export type CtagsOutputLimits = Readonly<{
+    maxLineBytes: number;
+    maxTotalBytes: number;
+    maxLines: number;
+}>;
+
+/** ctagsの診断出力がextension hostを圧迫しないためのstream単位の固定上限です。 */
+export const DEFAULT_CTAGS_OUTPUT_LIMITS: CtagsOutputLimits = {
+    maxLineBytes: 64 * 1_024,
+    maxTotalBytes: 1_024 * 1_024,
+    maxLines: 4_096,
+};
 
 const TJS_REGEX_ARGS = [
     '--regex-tjs=/^[ \\t]*class[ \\t]+([a-zA-Z0-9_]+)/\\1/c,class/',
@@ -38,9 +52,155 @@ type CtagsProcessCompletion = {
 };
 
 type OutputForwarder = {
+    readonly failure: CtagsOutputLimitError | undefined;
     flush(): void;
     dispose(): void;
 };
+
+type CtagsOutputStreamName = 'stdout' | 'stderr';
+
+export class CtagsOutputLimitError extends Error {
+    public constructor(streamName: CtagsOutputStreamName, limitDescription: string) {
+        super(`ctags ${streamName} exceeded the ${limitDescription}; output was truncated and the process was terminated.`);
+        this.name = 'CtagsOutputLimitError';
+    }
+}
+
+/**
+ * ctagsの出力を有限のBufferで行単位に転送します。
+ *
+ * byte数はUTF-16文字数ではなくchild processから受け取った生のbyte数で数えます。
+ */
+export function createCtagsOutputForwarder(
+    stream: Readable,
+    outputChannel: vscode.OutputChannel,
+    prefix: string,
+    streamName: CtagsOutputStreamName,
+    onLimitExceeded: (error: CtagsOutputLimitError) => void,
+    limits: CtagsOutputLimits = DEFAULT_CTAGS_OUTPUT_LIMITS,
+): OutputForwarder {
+    const pending = Buffer.allocUnsafe(limits.maxLineBytes);
+    let pendingBytes = 0;
+    let totalBytes = 0;
+    let lineCount = 0;
+    let failure: CtagsOutputLimitError | undefined;
+    let disposed = false;
+
+    const appendPendingLine = (
+        truncated: boolean,
+        stripTrailingCarriageReturn: boolean,
+    ): void => {
+        let lineBytes = pendingBytes;
+        if (stripTrailingCarriageReturn && lineBytes > 0 && pending[lineBytes - 1] === 0x0d) {
+            lineBytes--;
+        }
+        const suffix = truncated ? '… [truncated]' : '';
+        outputChannel.appendLine(`${prefix}: ${pending.subarray(0, lineBytes).toString('utf8')}${suffix}`);
+        pendingBytes = 0;
+        lineCount++;
+    };
+
+    const fail = (error: CtagsOutputLimitError, truncatePending: boolean): void => {
+        if (failure !== undefined) {
+            return;
+        }
+        failure = error;
+        if (truncatePending && pendingBytes > 0) {
+            appendPendingLine(true, false);
+        }
+        onLimitExceeded(error);
+    };
+
+    const failLineCount = (): void => {
+        fail(
+            new CtagsOutputLimitError(streamName, `${String(limits.maxLines)}-line output limit`),
+            false,
+        );
+    };
+
+    const processAcceptedBytes = (chunk: Buffer): void => {
+        let offset = 0;
+        while (offset < chunk.length && failure === undefined) {
+            const newlineIndex = chunk.indexOf(0x0a, offset);
+            const segmentEnd = newlineIndex < 0 ? chunk.length : newlineIndex;
+            const segmentBytes = segmentEnd - offset;
+
+            if (lineCount >= limits.maxLines && (segmentBytes > 0 || newlineIndex >= 0)) {
+                failLineCount();
+                return;
+            }
+
+            const availableLineBytes = limits.maxLineBytes - pendingBytes;
+            if (segmentBytes > availableLineBytes) {
+                if (availableLineBytes > 0) {
+                    chunk.copy(pending, pendingBytes, offset, offset + availableLineBytes);
+                    pendingBytes += availableLineBytes;
+                }
+                fail(
+                    new CtagsOutputLimitError(
+                        streamName,
+                        `${String(limits.maxLineBytes)}-byte line limit`,
+                    ),
+                    true,
+                );
+                return;
+            }
+
+            if (segmentBytes > 0) {
+                chunk.copy(pending, pendingBytes, offset, segmentEnd);
+                pendingBytes += segmentBytes;
+            }
+            if (newlineIndex < 0) {
+                return;
+            }
+
+            appendPendingLine(false, true);
+            offset = newlineIndex + 1;
+        }
+    };
+
+    const onData = (rawChunk: Buffer | string): void => {
+        if (disposed || failure !== undefined) {
+            return;
+        }
+        const chunk = Buffer.isBuffer(rawChunk) ? rawChunk : Buffer.from(rawChunk, 'utf8');
+        const remainingBytes = limits.maxTotalBytes - totalBytes;
+        const acceptedBytes = Math.min(chunk.length, Math.max(remainingBytes, 0));
+        if (acceptedBytes > 0) {
+            totalBytes += acceptedBytes;
+            processAcceptedBytes(chunk.subarray(0, acceptedBytes));
+        }
+        if (failure === undefined && acceptedBytes < chunk.length) {
+            fail(
+                new CtagsOutputLimitError(
+                    streamName,
+                    `${String(limits.maxTotalBytes)}-byte output limit`,
+                ),
+                true,
+            );
+        }
+    };
+
+    stream.on('data', onData);
+    return {
+        get failure(): CtagsOutputLimitError | undefined {
+            return failure;
+        },
+        flush: () => {
+            if (!disposed && failure === undefined && pendingBytes > 0) {
+                appendPendingLine(false, false);
+            }
+        },
+        dispose: () => {
+            if (disposed) {
+                return;
+            }
+            disposed = true;
+            stream.removeListener('data', onData);
+            stream.destroy();
+        },
+    };
+}
 
 /** 形式検証済みの設定から、ctagsへ直接渡す引数配列を構築します。 */
 export function buildCtagsArguments(
@@ -49,6 +209,8 @@ export function buildCtagsArguments(
     searchPath: string,
 ): string[] {
     const argumentsList = [
+        // ctagsの設定ファイルがcwdなどから暗黙に読み込まれないよう、必ず先頭に置く。
+        '--options=NONE',
         '--langdef=tjs',
         `--langmap=tjs:${configuration.fileExtensions.join('')}`,
         ...TJS_REGEX_ARGS,
@@ -173,6 +335,19 @@ export class CtagsExecutionCancelledError extends Error {
     }
 }
 
+/** 非再帰検索の入力ファイルを、backpressureに従ってctagsへ逐次送信します。 */
+export function writeNonRecursiveInputFiles(
+    searchPath: string,
+    input: Writable,
+    signal: AbortSignal,
+): Promise<void> {
+    return pipeline(
+        getNonRecursiveInputFileLines(searchPath, signal),
+        input,
+        { signal },
+    );
+}
+
 /** 一つのctags設定を安全に実行し、生成したタグファイルを原子的に昇格します。 */
 export class CtagsProcessExecutor {
     private readonly controllers = new Set<AbortController>();
@@ -197,9 +372,6 @@ export class CtagsProcessExecutor {
         processIndex: number,
     ): Promise<void> {
         const paths = await prepareCtagsPaths(folder, configuration, processIndex);
-        const nonRecursiveInputFiles = configuration.searchRecursive
-            ? []
-            : await getNonRecursiveInputFiles(paths.searchPath);
         const argumentsList = buildCtagsArguments(
             configuration,
             paths.temporaryTagFilePath,
@@ -220,25 +392,61 @@ export class CtagsProcessExecutor {
                 argumentsList,
                 createCtagsSpawnOptions(paths.workspaceRoot, controller.signal),
             ) as ChildProcessWithoutNullStreams;
-            const stdoutForwarder = this.pipeToOutput(child.stdout, `[ctagsProcess:${processIndex}] stdout`);
-            const stderrForwarder = this.pipeToOutput(child.stderr, `[ctagsProcess:${processIndex}] stderr`);
+            let outputFailure: CtagsOutputLimitError | undefined;
+            const onOutputLimitExceeded = (error: CtagsOutputLimitError): void => {
+                // timeoutやdisposeが先に中断した場合は、その終了理由を上書きしない。
+                if (outputFailure !== undefined || controller.signal.aborted) {
+                    return;
+                }
+                outputFailure = error;
+                this.outputChannel.appendLine(`[ctagsProcess:${processIndex}] WARN ${error.message}`);
+                controller.abort(error);
+            };
+            const stdoutForwarder = createCtagsOutputForwarder(
+                child.stdout,
+                this.outputChannel,
+                `[ctagsProcess:${processIndex}] stdout`,
+                'stdout',
+                onOutputLimitExceeded,
+            );
+            const stderrForwarder = createCtagsOutputForwarder(
+                child.stderr,
+                this.outputChannel,
+                `[ctagsProcess:${processIndex}] stderr`,
+                'stderr',
+                onOutputLimitExceeded,
+            );
 
             try {
                 const completion = waitForCtagsProcess(child, controller, configuration.timeoutMs);
+                let inputFailure: Error | undefined;
 
                 if (configuration.searchRecursive) {
                     child.stdin.end();
                 } else {
-                    const fileList = nonRecursiveInputFiles.length === 0
-                        ? ''
-                        : `${nonRecursiveInputFiles.join('\n')}\n`;
-                    child.stdin.end(fileList, 'utf8');
+                    try {
+                        await writeNonRecursiveInputFiles(
+                            paths.searchPath,
+                            child.stdin,
+                            controller.signal,
+                        );
+                    } catch (error) {
+                        // pipelineはstdinを破棄するため、ctagsの終了を確認してから
+                        // 入力側の失敗を報告し、一時ファイルを安全に削除する。
+                        inputFailure = error instanceof Error ? error : new Error(String(error));
+                    }
                 }
 
                 const result = await completion;
                 stdoutForwarder.flush();
                 stderrForwarder.flush();
+                if (outputFailure !== undefined) {
+                    throw outputFailure;
+                }
                 this.assertSuccessfulCompletion(result, configuration.timeoutMs);
+                if (inputFailure !== undefined) {
+                    throw inputFailure;
+                }
 
                 await assertGeneratedTagFile(paths.temporaryTagFilePath);
                 // 起動前の検証後に出力先が差し替えられていないか、rename直前にも確認する。
@@ -293,30 +501,4 @@ export class CtagsProcessExecutor {
         }
     }
 
-    /** ctagsの出力ストリームを行単位で出力チャンネルへ転送します。 */
-    private pipeToOutput(stream: Readable, prefix: string): OutputForwarder {
-        stream.setEncoding('utf8');
-        let pending = '';
-        const onData = (chunk: string): void => {
-            pending += chunk;
-            const lines = pending.split(/\r?\n/u);
-            pending = lines.pop() ?? '';
-            for (const line of lines) {
-                this.outputChannel.appendLine(`${prefix}: ${line}`);
-            }
-        };
-        stream.on('data', onData);
-        return {
-            flush: () => {
-                if (pending.length > 0) {
-                    this.outputChannel.appendLine(`${prefix}: ${pending}`);
-                    pending = '';
-                }
-            },
-            dispose: () => {
-                stream.removeListener('data', onData);
-                stream.destroy();
-            },
-        };
-    }
 }
